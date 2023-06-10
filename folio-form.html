@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">    
+    <script>
+      const gs = google.script;
+
+      function success() {
+          console.log("got values from user");
+          gs.host.close();
+      }
+      
+      function failure(error) {
+          console.log("error in Folio form: " + error);
+          gs.host.close();
+      }
+
+      function sendForm() { 
+          console.log("sending form");
+          const url = document.getElementById("url").value;
+          const tenant_id = document.getElementById("tenant_id").value;
+          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id);
+      }
+    </script>
+    <?!= include('stylesheet'); ?>
+  </head>
+  <body>
+    <div class="explanatory-text">
+      <p>Boffo needs the FOLIO API URL and the tenant id.
+        Note that these are <b>not the same</b> as your user account
+        credentials. These values will be the same for everyone in
+        the library.</p>
+    </div>
+    <div class="form">
+      <form id="form" onsubmit="sendForm(); return false;">
+        <label for="name" class="label">FOLIO API URL:</label>
+        <br>
+        <input type="text" name="url" id="url" class="field" autocomplete="url" required>
+        <br>
+        <label for="password" class="label">FOLIO tenant id:</label>
+        <br>
+        <input type="text" name="tenant_id" id="tenant_id" class="field">
+        <br>
+        <input type="submit" class="button">
+      </form>
+    </div>
+  </body>
+  
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <script>
+      const gs = google.script;
+
+      function success() {
+          console.log("got values from user");
+          gs.host.close();
+      }
+      
+      function failure(error) {
+          console.log("error in Folio form: " + error);
+          gs.host.close();
+      }
+
+      function sendForm() { 
+          console.log("sending form");
+          const user = document.getElementById("user").value;
+          const password = document.getElementById("password").value;
+          gs.run.withSuccessHandler(success).withFailureHandler(failure).getNewToken(user, password);
+      }      
+    </script>
+    <?!= include('stylesheet'); ?>    
+  </head>
+  <body>
+    <div class="explanatory-text">
+      <p>Boffo needs your FOLIO user login and password so that it
+        can ask FOLIO to create an authentication token. Your user
+        name and password will not be stored.</p>
+    </div>
+    <div class="form">
+      <form id="form" onsubmit="sendForm(); return false;">
+        <label for="name" class="label">FOLIO user name:</label>
+        <br>
+        <input type="text" name="user" id="user" class="field" autocomplete="username" required>
+        <br>
+        <label for="password" class="label">Password:</label>
+        <br>
+        <input type="password" name="password" id="password" class="field">
+        <br>
+        <input type="submit" class="button">
+      </form>
+    </div>
+  </body>
+  
+</html>
