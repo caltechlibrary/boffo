@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "Boffo",
+            "type": "node",
+            "program": "node",
+            "args": "Code.js"
+        }
+    ]
+}
