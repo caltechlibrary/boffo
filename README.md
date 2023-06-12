@@ -2,8 +2,9 @@
 
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items given a list of barcodes.
 
-[![License](https://img.shields.io/badge/License-BSD--like-lightgrey)](https://choosealicense.com/licenses/bsd-3-clause)
-[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?color=b44e88)](https://github.com/caltechlibrary/boffo/releases)
+[![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/iga/LICENSE)
+[![clasp](https://img.shields.io/badge/Built%20with-clasp-4285f4.svg?style=flat-square&color=327fa8)](https://github.com/google/clasp)
+[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=b44e88&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
 
 
 ## Table of contents
