@@ -14,3 +14,9 @@
 #   JavaScript, TypeScript and .html source files within the rootDir folder.
 #   Child folders other than .git and node_modules are processed."
 # =============================================================================
+
+#*.*#
+*~
+.*~
+.indium.json
+.term-port
