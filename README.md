@@ -2,7 +2,7 @@
 
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items given a list of barcodes.
 
-[![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/iga/LICENSE)
+[![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/boffo/LICENSE)
 [![clasp](https://img.shields.io/badge/Built%20with-clasp-4285f4.svg?style=flat-square&color=327fa8)](https://github.com/google/clasp)
 [![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=b44e88&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
 
@@ -37,7 +37,7 @@ If you find an issue, please submit it in [the GitHub issue tracker](https://git
 
 ## Contributing
 
-Your help and participation in enhancing IGA is welcome!  Please visit the [guidelines for contributing](CONTRIBUTING.md) for some tips on getting started.
+Your help and participation in enhancing Boffo is welcome!  Please visit the [guidelines for contributing](CONTRIBUTING.md) for some tips on getting started.
 
 
 ## License
@@ -51,6 +51,6 @@ This work was funded by the California Institute of Technology Library.
 <div align="center">
   <br>
   <a href="https://www.caltech.edu">
-    <img width="100" height="100" src="https://github.com/caltechlibrary/iga/raw/main/.graphics/caltech-round.png">
+    <img width="100" height="100" src="https://github.com/caltechlibrary/boffo/raw/main/.graphics/caltech-round.png">
   </a>
 </div>
