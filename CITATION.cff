@@ -1,25 +1,22 @@
-cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: Caltech Library Software Repository Template
+cff-version: 1.2
+message: "If you use this software, please cite it using these metadata."
+title: "Boffo (Barcodes from FOLIO)"
 authors:
   - family-names: Hucka
     given-names: Michael
-    orcid: https://orcid.org/0000-0001-9105-5960
-  - family-names: Doiel
-    given-names: Robert
-    orcid: https://orcid.org/0000-0003-0900-6903
-  - family-names: Morrell
-    given-names: Thomas E.
-    orcid: https://orcid.org/0000-0001-9266-5146
-  - family-names: Keswick
-    given-names: Tommy
-    orcid: https://orcid.org/0000-0001-5644-440X
-abstract: Template repository for software projects by the Caltech Library
-repository-code: "https://github.com/caltechlibrary/template"
+    affiliation: "Caltech Library"
+    orcid: "https://orid.org/0000-0001-9105-5960"
+version: "0.0.1"
+abstract: "An apps script for Google Sheets that takes item barcodes and queries a FOLIO instance for information about them."
+repository-code: "https://github.com/caltechlibrary/boffo"
 type: software
-version: 1.18.0
-license-url: "https://github.com/caltechlibrary/template/blob/main/LICENSE"
+url: "https://caltechlibrary.github.io/boffo"
+license-url: "https://github.com/caltechlibrary/boffo/blob/main/LICENSE"
 keywords:
-  - template
-  - software
-date-released: 2022-07-14
+  - "FOLIO"
+  - "Google Apps Scripts"
+  - "Google Sheets"
+  - "automation"
+  - "library"
+  - "software"
+date-released: "2023-06-12"

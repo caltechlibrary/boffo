@@ -62,9 +62,12 @@
         "url": "https://developers.google.com/apps-script/overview"
     },
     "keywords": [
-        "software",
+        "FOLIO",
+        "Google Apps Scripts",
+        "Google Sheets",
+        "automation",
         "library",
-        "automation"
+        "software"
     ],
     "developmentStatus": "active"
 }
