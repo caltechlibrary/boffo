@@ -1,0 +1,16 @@
+# =========================================================== -*- gitignore -*-
+# @file    .claspignore
+# @brief   Files and patterns for files and subdirs that clasp should ignore
+# @date    2023-06-12
+# @license Please see the file named LICENSE in the project directory
+# @website https://github.com/caltechlibrary/boffo
+#
+# The only documentation for the .claspignore file that I ever found is at
+# https://github.com/google/clasp#ignore-file-claspignore
+# The file format is multimatch (https://github.com/sindresorhus/multimatch).
+# According to the README in the GitHub repo for clasp:
+#   "If no .claspignore is specified, a default set of patterns is applied.
+#   This default set will only consider the appsscript.json manifest and any
+#   JavaScript, TypeScript and .html source files within the rootDir folder.
+#   Child folders other than .git and node_modules are processed."
+# =============================================================================
