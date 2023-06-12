@@ -19,3 +19,15 @@
 # A useful starting point for global .gitignore file contents can be found at
 # https://github.com/github/gitignore/tree/main/Global (as of 2022-07-14).
 # =============================================================================
+
+# Ignore backup files created by our Makefile
+# .............................................................................
+
+*.bak
+
+# Project-specific things to ignore:
+# .............................................................................
+
+docs/_build
+*.log
+*.tmp
