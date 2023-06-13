@@ -170,10 +170,10 @@ function getNewToken(user, password) {
     }
   }
   
-  log('doing HTTP post on ' + endpoint);
+  log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
   let http_code = response.getResponseCode();
-  log('got response from Folio with HTTP code ' + http_code);
+  log(`got response from Folio with HTTP code ${http_code}`);
   if (http_code < 300) {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
@@ -184,7 +184,7 @@ function getNewToken(user, password) {
       ui.alert('Folio did not return a token');
     }
   } else {
-    ui.alert('An error occurred communicating with Folio (code ' + http_code + ').')
+    ui.alert(`An error occurred communicating with Folio (code ${http_code}).`);
   }
 }
 
@@ -242,22 +242,22 @@ function itemData(barcode) {
     }
   }
   
-  log('doing HTTP get on ' + endpoint);
+  log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
   let http_code = response.getResponseCode();
-  log('got response from Folio with HTTP code ' + http_code);
+  log(`got response from Folio with HTTP code ${http_code}`);
   if (http_code >= 300) {
-    ui.alert('An error occurred communicating with Folio (code ' + http_code + ').')
+    ui.alert(`An error occurred communicating with Folio (code ${http_code}).`);
     return;
   }
 
   let results = JSON.parse(response.getContentText());
   if (results.totalRecords < 0) {
-    log('Folio did not return data for ' + barcode);
+    log(`Folio did not return data for ${barcode}`);
     return;
   } else if (results.totalRecords > 1) {
     // FIXME put something in the output
-    log('Folio returned more than one item for ' + barcode);
+    log(`Folio returned more than one item for ${barcode}`);
     return;
   } else {
     let item = results.items[0];
