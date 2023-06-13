@@ -6,7 +6,7 @@
     <script>
       const gs = google.script;
 
-      function success() {
+      function success(output) {
           console.log("got values from user");
           gs.host.close();
       }
@@ -20,7 +20,7 @@
           console.log("sending form");
           const url = document.getElementById("url").value;
           const tenant_id = document.getElementById("tenant_id").value;
-          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id);
+          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioServerInfo(url, tenant_id);
       }
     </script>
     <?!= include('stylesheet'); ?>
