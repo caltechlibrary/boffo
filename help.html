@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_blank">
+    <script>
+     const helpURL = "https://caltechlibrary.github.io/boffo";
+     if (!window.open(helpURL)) {
+       window.onload = function() { document.getElementById('url').href = helpURL; };
+     }
+    </script>
+    <?!= include('stylesheet'); ?>
+  </head>
+  <body>
+    <div class="explanatory-text">
+      <p>Web browser security prevents Boffo from opening a new
+        window without your express action. Please click
+        on the link below to visit the help pages.</p>
+    </div>
+    <a id='url'>Boffo help pages ↗︎</a>
+  </body>
+</html>
