@@ -1,52 +1,115 @@
+// ============================================================================
+// @file    Code.js
+// @brief   Main file for Boffo
+// @created 2023-06-08
+// @license Please see the file named LICENSE in the project directory
+// @website https://github.com/caltechlibrary/boffo
+// ============================================================================
+
+
+// Shortcuts to objects in the Google Apps Script environment.
+// ............................................................................
+
 const ui = SpreadsheetApp.getUi();
 const userProps = PropertiesService.getUserProperties();
 const scriptProps = PropertiesService.getScriptProperties();
 
+
+// Global constants.
+// ............................................................................
+
+const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
 const cancel = new Error('cancelled');
-const log = (text) => { Logger.log(text); };
+
+
+// Menu definition.
+// ............................................................................
 
 function onOpen() {
   ui.createMenu('FOLIO')
       .addItem('Look up barcodes', 'lookUpBarcode')
       .addSeparator()
-      .addItem('Reset FOLIO token', 'resetToken')
-      .addItem('form', 'showCredentialsForm')
-      .addItem('folio', 'checkFolioInfo')    
+      .addItem('Set FOLIO credentials', 'setFolioToken')
+      .addItem('Look up item barcodes', 'lookUpBarcode')    
+      .addItem('test form', 'showCredentialsForm')
+      .addItem('test folio', 'checkFolioServerInfo')    
       .addToUi();
 }
 
-function checkFolioInfo() {
+
+// Functions for getting/setting FOLIO server URL and tenant ID.
+// ............................................................................
+
+function validFolioUrl(url) {
+  return url.startsWith('https://');
+}
+
+function validTenantId(tenant_id) {
+  return !tenant_id.startsWith('https');
+}
+
+function haveFolioServerInfo() {
+  let url = scriptProps.getProperty('folio_url');
+  let tenant_id = scriptProps.getProperty('tenant_id');
+  return validFolioUrl(url) && validTenantId(tenant_id);
+}
+
+/**
+ * Checks that the FOLIO server URL and tenant ID are set to valid-looking
+ * values. If they are not, uses a dialog to ask the user for the values and
+ * then stores them in the script properties.
+ */
+function checkFolioServerInfo() {
+  if (haveFolioServerInfo()) {
+    log('Folio url and tenant_id look okay');
+  } else {
+    log('Folio url and/or tenant_id not set or are invalid');
+    setFolioServerInfo();
+  }
+}
+
+/**
+ * Gets FOLIO server URL and tenant ID values from the user and stores them
+ * in the script properties. The process is split into two parts: this
+   function creates a dialog using an HTML form, and then JavaScript code
+   embedded in the HTML form calls the separate function saveFolioInfo().
+ */
+function setFolioServerInfo() {
   try {
-    if (!scriptProps.getProperty('folio_url') || !scriptProps.getProperty('tenant_id')) {
-      // The process is split into two parts: this function creates a dialog using
-      // an HTML form, and JavaScript code embedded in the form calls saveFolioInfo().
-      let htmlContent = HtmlService
+    let htmlContent = HtmlService
         .createTemplateFromFile('folio-form')
         .evaluate()
         .setWidth(450)
         .setHeight(240);
-      log('asking user for Folio URL & tenant id');
-      ui.showModalDialog(htmlContent, 'FOLIO server information');
-    }
+    log('asking user for Folio URL & tenant id');
+    ui.showModalDialog(htmlContent, 'FOLIO server information');
   } catch (err) {
     quit(err);
   }
 }
 
-function saveFolioInfo(url, tenant_id) {
+function saveFolioServerInfo(url, tenant_id) {
   if (!validFolioUrl(url)) {
-    ui.alert("The URL value you provided does not look like a URL. It cannot be used.");
+    ui.alert("The given URL does not look like a URL and cannot be used.");
     return;
   }
   if (!validTenantId(tenant_id)) {
-    ui.alert("The tenant ID should not be a URL.");
+    ui.alert("The given tenant ID looks like a URL instead. It cannot be used.");
     return;
   }
   scriptProps.setProperty('folio_url', url);
   scriptProps.setProperty('tenant_id', tenant_id);
 }
 
-function resetToken() {
+
+// Functions for getting/setting FOLIO API token.
+// ............................................................................
+
+function haveToken() {
+  return userProps.getProperty('token') != null;
+}
+
+function setToken() {
   try {
     if (haveToken()) {
       log('found an existing token -- asking user if should use it');
@@ -59,25 +122,21 @@ function resetToken() {
       }
     }
     // Didn't find an existing token, or user said to regenerate it.
-    checkFolioInfo();
-    getTokenFromFolio();
+    checkFolioServerInfo();
+    createNewToken();
   } catch (err) {
     quit(err);
   }
 }
 
-function haveToken() {
-  return userProps.getProperty('token') != null;
-}
-
-function saveToken(token) {
-  userProps.setProperty('token', token);
-  log('saved token');
-}
-
-function getTokenFromFolio() {
+/**
+ * Asks FOLIO for a new API token. The process is split into two parts: this
+ * function creates a dialog using an HTML form, and then JavaScript code
+ * embedded in the HTML form calls the separate function getNewToken().
+ */
+function createNewToken() {
   // The process is split into two parts: this function creates a dialog using
-  // an HTML form, and JavaScript code embedded in the form calls getNewToken().
+  // an HTML form and JavaScript code embedded in the form calls getNewToken().
   let htmlContent = HtmlService
     .createTemplateFromFile('user-form')
     .evaluate()
@@ -129,15 +188,36 @@ function getNewToken(user, password) {
   }
 }
 
+function saveToken(token) {
+  userProps.setProperty('token', token);
+  log('saved token');
+}
+
+
+// Functions for looking up info about items.
+// ............................................................................
+
 function lookUpBarcode() {
+  // Check if we have creds & ask user for them if we don't.
+  if (!haveToken()) {
+    setToken();
+  }
+  if (!haveToken() || !haveFolioServerInfo()) {
+    ui.alert('Unable to continue due to missing token and/or Folio server info');
+    return;
+  }
+
   try {
-    // Check if we have creds & ask user for them if we don't.
-    if (! haveToken()) {
-      resetToken();
-    }
-    // Get array of values from spreadsheet.
+    // Get array of values from spreadsheet. This will be a list of strings.
+    let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
+    let values = selection.getActiveRange().getDisplayValues();
+
     // Filter out things that don't look like barcodes.
+    values = values.filter(x => barcodePattern.test(x));
+
     // Ask Folio about each barcode.
+    itemData(values[0]);
+
     // Add column headers to spreadsheet if necessary.
     // Fill out each row with data in the appropriate columns.
 
@@ -149,20 +229,66 @@ function lookUpBarcode() {
   // and if none are barcodes, raise an alert.
 }
 
-function quit(msg) {
-  log('stopped execution: ' + msg);
+function itemData(barcode) {
+  let url = scriptProps.getProperty('folio_url');
+  let endpoint = url + '/inventory/items?query=barcode=' + barcode;
+  let options = {
+    'url': endpoint,
+    'method': 'get',
+    'contentType': 'application/json',
+    'headers': {
+      'x-okapi-tenant': scriptProps.getProperty('tenant_id'),
+      'x-okapi-token': userProps.getProperty('token')
+    }
+  }
+  
+  log('doing HTTP get on ' + endpoint);
+  let response = UrlFetchApp.fetch(endpoint, options);
+  let http_code = response.getResponseCode();
+  log('got response from Folio with HTTP code ' + http_code);
+  if (http_code >= 300) {
+    ui.alert('An error occurred communicating with Folio (code ' + http_code + ').')
+    return;
+  }
+
+  let results = JSON.parse(response.getContentText());
+  if (results.totalRecords < 0) {
+    log('Folio did not return data for ' + barcode);
+    return;
+  } else if (results.totalRecords > 1) {
+    // FIXME put something in the output
+    log('Folio returned more than one item for ' + barcode);
+    return;
+  } else {
+    let item = results.items[0];
+    let id = item.id;
+    let title = item.title;
+    let call_num = item.callNumber;
+    let effective_loc = item.effectiveLocation.name;
+    let status = item.status.name;
+
+    log(id);
+    log(title);
+    log(call_num);
+    log(effective_loc);
+    log(status);
+  }
 }
 
-function validFolioUrl(url) {
-  return url.startsWith('https://');
-}
-
-function validTenantId(tenant_id) {
-  return !tenant_id.startsWith('https');
-}
+
+// Miscellaneous helper functions.
+// ............................................................................
 
 // Used in the forms html files.
 // Originally from https://developers.google.com/apps-script/guides/html/best-practices
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function log(text) {
+  Logger.log(text);
+};
+
+function quit(msg) {
+  log('stopped execution: ' + msg);
 }
