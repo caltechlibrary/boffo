@@ -11,6 +11,7 @@
 // ............................................................................
 
 const ui = SpreadsheetApp.getUi();
+const ss = SpreadsheetApp.getActiveSpreadsheet();
 const userProps = PropertiesService.getUserProperties();
 const scriptProps = PropertiesService.getScriptProperties();
 
@@ -18,7 +19,20 @@ const scriptProps = PropertiesService.getScriptProperties();
 // Global constants.
 // ............................................................................
 
+// Regexp for testing that a string looks like a valid Caltech Library barcode.
 const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
+
+// The order here determines the order of the columns in the results sheet.
+const fields = [
+  ['Barcode'            , (item) => item.barcode                ],
+  ['Title'              , (item) => item.title                  ],
+  ['Call number'        , (item) => item.callNumber             ],
+  ['Effective location' , (item) => item.effectiveLocation.name ],
+  ['Status'             , (item) => item.status.name            ],
+  ['UUID'               , (item) => item.id                     ],
+]
+
+const helpURL = 'http://www.caltech.edu';
 const cancel = new Error('cancelled');
 
 
@@ -26,14 +40,17 @@ const cancel = new Error('cancelled');
 // ............................................................................
 
 function onOpen() {
+  // Note: the spaces after the icons are actually 2 unbreakable spaces.
   ui.createMenu('FOLIO')
-      .addItem('Look up barcodes', 'lookUpBarcode')
-      .addSeparator()
-      .addItem('Set FOLIO credentials', 'setFolioToken')
-      .addItem('Look up item barcodes', 'lookUpBarcode')    
-      .addItem('test form', 'showCredentialsForm')
-      .addItem('test folio', 'checkFolioServerInfo')    
-      .addToUi();
+    .addItem('🔎 ﻿ ﻿Look up barcodes', 'lookUpBarcode')
+    .addSeparator()
+    .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'setFolioToken')
+    .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
+    .addToUi();
+}
+
+function foo() {
+  let resultsSheet = createResultsSheet(columns.map((value) => value[0]));
 }
 
 
@@ -214,22 +231,37 @@ function lookUpBarcode() {
 
     // Filter out things that don't look like barcodes.
     values = values.filter(x => barcodePattern.test(x));
+    if (values.length < 1) {
+      ui.alert('Boffo', 'Please select some cells containing item barcodes.',
+               ui.ButtonSet.OK);
+      return;
+    }
 
-    // Ask Folio about each barcode.
-    itemData(values[0]);
+    // Get item data for each barcode.
+    let items = values.map((value) => itemData(value));
 
-    // Add column headers to spreadsheet if necessary.
-    // Fill out each row with data in the appropriate columns.
-
+    // Create a new sheet and write the data into it.
+    let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
+    let lastColumnLetter = 'ABCDEFGHIJKLMNOPQRSTUVWXY'.charAt(fields.length - 1);
+    for (let i = 0; i < items.length; i++) {
+      let row = i + 2;                  // Offset +1 for header row.
+      log(`row = ${row}`);
+      let cells = resultsSheet.getRange(`A${row}:${lastColumnLetter}${row}`);
+      let data = fields.map((field) => field[1](items[i]));
+      log(`data = ${data}`);
+      cells.setValues([data]);
+    };
+    log('done writing data to sheet');
+    ss.toast('Done! ✨', 'Boffo', 1);
   } catch (err) {
     quit(err);
   }  
-  // Get the selected cells in the current sheet.
-  // Check the values look like barcodes. Ignore ones that don't,
-  // and if none are barcodes, raise an alert.
+  return;
 }
 
 function itemData(barcode) {
+  ss.toast(`Getting data for ${barcode} …`, 'Boffo', -1);
+
   let url = scriptProps.getProperty('folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
@@ -260,27 +292,83 @@ function itemData(barcode) {
     log(`Folio returned more than one item for ${barcode}`);
     return;
   } else {
-    let item = results.items[0];
-    let id = item.id;
-    let title = item.title;
-    let call_num = item.callNumber;
-    let effective_loc = item.effectiveLocation.name;
-    let status = item.status.name;
+    log(`returning result for ${barcode}`);
+    return results.items[0];
+    // let id = item.id;
+    // let title = item.title;
+    // let call_num = item.callNumber;
+    // let effective_loc = item.effectiveLocation.name;
+    // let status = item.status.name;
 
-    log(id);
-    log(title);
-    log(call_num);
-    log(effective_loc);
-    log(status);
+    // log(id);
+    // log(title);
+    // log(call_num);
+    // log(effective_loc);
+    // log(status);
   }
+}
+
+function createResultsSheet(headings) {
+  let sheet = ss.insertSheet(uniqueSheetName());
+  sheet.setColumnWidths(1, 5, 130);
+
+  let cells = sheet.getRange('A1:A1000');
+  cells.setHorizontalAlignment('left');
+
+  let headerRow = sheet.getRange('A1:F1');
+  headerRow.setValues([headings]);
+  headerRow.setFontSize(10);
+  headerRow.setFontColor('white');
+  headerRow.setFontWeight('bold');
+  headerRow.setBackground('#999999');
+
+  return sheet;
+}
+
+
+// Functions for showing help.
+// ............................................................................
+
+function getHelp() {
+  let htmlContent = HtmlService
+    .createTemplateFromFile('help')
+    .evaluate()
+    .setWidth(300)
+    .setHeight(200);
+  log('showing help dialog');
+  ui.showModalDialog(htmlContent, 'Help for Boffo');
+}
+
+function getHelpURL() {
+  return helpURL;
 }
 
 
 // Miscellaneous helper functions.
 // ............................................................................
 
-// Used in the forms html files.
-// Originally from https://developers.google.com/apps-script/guides/html/best-practices
+/**
+ * Returns a unique sheet name. The name is generated by taking a base name
+ * and, if necessary, appending an integer that is incremented until the name
+ * is unique.
+ */
+function uniqueSheetName(baseName = 'Item Data') {
+  let names = ss.getSheets().map((sheet) => sheet.getName());
+
+  // Compare candidate name against existing sheet names & increment counter
+  // until we no longer get a match against any existing name.
+  let newName = baseName;
+  for (let i = 2; names.indexOf(newName) > -1; i++) {
+    newName = `${baseName} ${i}`;
+  }
+  return newName;
+}
+
+/**
+ * Returns the content of an HTML file in this project. This is used in
+ * the HTML files themselves. Code originally based on
+ * https://developers.google.com/apps-script/guides/html/best-practices
+ */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
@@ -290,5 +378,5 @@ function log(text) {
 };
 
 function quit(msg) {
-  log('stopped execution: ' + msg);
+  log(`stopped execution: ${msg}`);
 }
