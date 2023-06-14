@@ -44,13 +44,9 @@ function onOpen() {
   ui.createMenu('FOLIO')
     .addItem('🔎 ﻿ ﻿Look up barcodes', 'lookUpBarcode')
     .addSeparator()
-    .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'setFolioToken')
+    .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
     .addToUi();
-}
-
-function foo() {
-  let resultsSheet = createResultsSheet(columns.map((value) => value[0]));
 }
 
 
@@ -172,20 +168,20 @@ function getNewToken(user, password) {
     log('stored Folio url and/or tenant_id are invalid; aborting');
     return;
   }
-  let endpoint = url + '/authn/login'
-  let options = {
-    'url': endpoint,
-    'method': 'post',
-    'contentType': 'application/json',
-    'payload': JSON.stringify({
+  let endpoint = url + '/authn/login';
+  let payload = JSON.stringify({
       'tenant': tenant_id,
       'username': user,
       'password': password
-    }),
+  });
+  let options = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'payload': payload,
     'headers': {
       'x-okapi-tenant': tenant_id
     }
-  }
+  };
   
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
@@ -194,8 +190,8 @@ function getNewToken(user, password) {
   if (http_code < 300) {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
-      let token = response_headers['x-okapi-token'];
       log('got token from Folio');
+      let token = response_headers['x-okapi-token'];
       saveToken(token);
     } else {
       ui.alert('Folio did not return a token');
@@ -265,14 +261,13 @@ function itemData(barcode) {
   let url = scriptProps.getProperty('folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
-    'url': endpoint,
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
       'x-okapi-tenant': scriptProps.getProperty('tenant_id'),
       'x-okapi-token': userProps.getProperty('token')
     }
-  }
+  };
   
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
@@ -294,17 +289,6 @@ function itemData(barcode) {
   } else {
     log(`returning result for ${barcode}`);
     return results.items[0];
-    // let id = item.id;
-    // let title = item.title;
-    // let call_num = item.callNumber;
-    // let effective_loc = item.effectiveLocation.name;
-    // let status = item.status.name;
-
-    // log(id);
-    // log(title);
-    // log(call_num);
-    // log(effective_loc);
-    // log(status);
   }
 }
 
