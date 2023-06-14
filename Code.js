@@ -41,8 +41,8 @@ const cancel = new Error('cancelled');
 
 function onOpen() {
   // Note: the spaces after the icons are actually 2 unbreakable spaces.
-  ui.createMenu('FOLIO')
-    .addItem('🔎 ﻿ ﻿Look up barcodes', 'lookUpBarcode')
+  ui.createMenu('Boffo 🐝 ﻿')
+    .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcode')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
