@@ -49,6 +49,10 @@ function onOpen() {
     .addToUi();
 }
 
+function onInstall() {
+  onOpen();
+}
+
 
 // Functions for getting/setting FOLIO server URL and tenant ID.
 // ............................................................................
