@@ -1,4 +1,4 @@
-# Boffo
+# Boffo<img width="12%" align="right" src=".graphics/boffo-icon.png">
 
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items given a list of barcodes.
 
