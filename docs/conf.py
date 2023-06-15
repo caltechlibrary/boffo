@@ -39,7 +39,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'README.md',
 html_title = 'Boffo'
 html_short_title = "Home"
 
-html_logo = "_static/media/cloud-upload.png"
+html_logo = "_static/media/boffo-icon.png"
 html_favicon = "_static/media/favicon.ico"
 
 # The theme to use for HTML and HTML Help pages.

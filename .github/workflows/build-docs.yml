@@ -9,7 +9,7 @@
 # https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-static-site-generators-with-python
 # =============================================================================
 
-name: Update docs on GitHub
+name: Build docs for gh-pages
 
 on:
   push:
