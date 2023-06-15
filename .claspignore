@@ -20,6 +20,7 @@
 .*~
 .indium.json
 .tern-port
+dev/**
 docs/**
 .git/**
 Makefile
