@@ -23,6 +23,7 @@ const scriptProps = PropertiesService.getScriptProperties();
 const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
 
 // The order here determines the order of the columns in the results sheet.
+// The length of this array also determines the number of columns.
 const fields = [
   ['Barcode'            , (item) => item.barcode                ],
   ['Title'              , (item) => item.title                  ],
@@ -32,7 +33,7 @@ const fields = [
   ['UUID'               , (item) => item.id                     ],
 ]
 
-const helpURL = 'http://www.caltech.edu';
+const helpURL = 'http://caltechlibrary.github.io/boffo';
 const cancel = new Error('cancelled');
 
 
@@ -58,11 +59,11 @@ function onInstall() {
 // ............................................................................
 
 function validFolioUrl(url) {
-  return url.startsWith('https://');
+  return url && url.startsWith('https://');
 }
 
 function validTenantId(tenant_id) {
-  return !tenant_id.startsWith('https');
+  return tenant_id && !tenant_id.startsWith('https');
 }
 
 function haveFolioServerInfo() {
@@ -98,7 +99,7 @@ function setFolioServerInfo() {
         .evaluate()
         .setWidth(450)
         .setHeight(240);
-    log('asking user for Folio URL & tenant id');
+    log('showing dialog to ask user for Folio URL & tenant id');
     ui.showModalDialog(htmlContent, 'FOLIO server information');
   } catch (err) {
     quit(err);
@@ -194,9 +195,9 @@ function getNewToken(user, password) {
   if (http_code < 300) {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
-      log('got token from Folio');
       let token = response_headers['x-okapi-token'];
-      saveToken(token);
+      userProps.setProperty('token', token);
+      log('got token from Folio and saved it');
     } else {
       ui.alert('Folio did not return a token');
     }
@@ -205,33 +206,33 @@ function getNewToken(user, password) {
   }
 }
 
-function saveToken(token) {
-  userProps.setProperty('token', token);
-  log('saved token');
-}
-
 
 // Functions for looking up info about items.
 // ............................................................................
 
 function lookUpBarcode() {
   // Check if we have creds & ask user for them if we don't.
+  checkFolioServerInfo();
   if (!haveToken()) {
     setToken();
   }
+
+  // If we still don't have valid creds, something is wrong & we bail.
   if (!haveToken() || !haveFolioServerInfo()) {
     ui.alert('Unable to continue due to missing token and/or Folio server info');
     return;
   }
 
+  // We've got creds & we're ready to rock.
   try {
     // Get array of values from spreadsheet. This will be a list of strings.
     let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
     let values = selection.getActiveRange().getDisplayValues();
 
-    // Filter out things that don't look like barcodes.
+    // Filter out strings that don't look like barcodes.
     values = values.filter(x => barcodePattern.test(x));
     if (values.length < 1) {
+      // Either the selection was empty, or filtering removed everything.
       ui.alert('Boffo', 'Please select some cells containing item barcodes.',
                ui.ButtonSet.OK);
       return;
@@ -242,11 +243,11 @@ function lookUpBarcode() {
 
     // Create a new sheet and write the data into it.
     let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
-    let lastColumnLetter = 'ABCDEFGHIJKLMNOPQRSTUVWXY'.charAt(fields.length - 1);
+    let lastLetter = lastColumnLetter();
     for (let i = 0; i < items.length; i++) {
       let row = i + 2;                  // Offset +1 for header row.
       log(`row = ${row}`);
-      let cells = resultsSheet.getRange(`A${row}:${lastColumnLetter}${row}`);
+      let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
       let data = fields.map((field) => field[1](items[i]));
       log(`data = ${data}`);
       cells.setValues([data]);
@@ -298,12 +299,15 @@ function itemData(barcode) {
 
 function createResultsSheet(headings) {
   let sheet = ss.insertSheet(uniqueSheetName());
-  sheet.setColumnWidths(1, 5, 130);
+  sheet.setColumnWidths(1, numColumns(), 130);
 
+  // FIXME 1000 is arbitrary, picked because new Google sheets have 1000 rows,
+  // but it's conceivable someone will create a sheet with more.
   let cells = sheet.getRange('A1:A1000');
   cells.setHorizontalAlignment('left');
 
-  let headerRow = sheet.getRange('A1:F1');
+  let lastLetter = lastColumnLetter();
+  let headerRow = sheet.getRange(`A1:${lastLetter}1`);
   headerRow.setValues([headings]);
   headerRow.setFontSize(10);
   headerRow.setFontColor('white');
@@ -334,6 +338,20 @@ function getHelpURL() {
 
 // Miscellaneous helper functions.
 // ............................................................................
+
+/**
+ * Returns the number of columns needed to hold the fields fetched from FOLIO.
+ */
+function numColumns() {
+  return fields.length;
+}
+
+/**
+ * Returns the spreadsheet column letter corresponding to the last column.
+ */
+function lastColumnLetter() {
+  return 'ABCDEFGHIJKLMNOPQRSTUVWXY'.charAt(fields.length - 1);
+}
 
 /**
  * Returns a unique sheet name. The name is generated by taking a base name
