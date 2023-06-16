@@ -22,6 +22,9 @@ const scriptProps = PropertiesService.getScriptProperties();
 // Regexp for testing that a string looks like a valid Caltech Library barcode.
 const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
 
+// Regexp for testing that a string looks something like a FOLIO tenant id.
+const tenantIdPattern = new RegExp('\\d+');
+
 // The order here determines the order of the columns in the results sheet.
 // The length of this array also determines the number of columns.
 const fields = [
@@ -46,6 +49,7 @@ function onOpen() {
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcode')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
+    .addItem('Set info', 'getFolioCredentials')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
     .addToUi();
 }
@@ -58,18 +62,38 @@ function onInstall() {
 // Functions for getting/setting FOLIO server URL and tenant ID.
 // ............................................................................
 
+/**
+ * Does basic sanity-checking on a string to check that it looks like a URL.
+ */
 function validFolioUrl(url) {
   return url && url.startsWith('https://');
 }
 
-function validTenantId(tenant_id) {
-  return tenant_id && !tenant_id.startsWith('https');
+/**
+ * Does basic sanity-checking on a string to check that it looks like a FOLIO
+ * tenant id and not (e.g.) a URL.
+ */
+function validTenantId(id) {
+  return id && tenantIdPattern.test(id) && !id.startsWith('https');
 }
 
-function haveFolioServerInfo() {
-  let url = scriptProps.getProperty('folio_url');
-  let tenant_id = scriptProps.getProperty('tenant_id');
-  return validFolioUrl(url) && validTenantId(tenant_id);
+/**
+ * Does basic sanity-checking on a string to check that it looks like it could
+ * be a FOLIO API token. 
+ */
+function validAPIToken(token) {
+  return token && token.length > 150;
+}
+
+/**
+ * Returns true if it looks like the necessary data to use the FOLIO API
+ * have been stored.
+ */
+function haveFolioCredentials() {
+  let url   = scriptProps.getProperty('boffo_folio_url');
+  let id    = scriptProps.getProperty('boffo_folio_tenant_id');
+  let token = userProps.getProperty('boffo_folio_api_token');
+  return validFolioUrl(url) && validTenantId(id) && validAPIToken(token);
 }
 
 /**
@@ -77,36 +101,41 @@ function haveFolioServerInfo() {
  * values. If they are not, uses a dialog to ask the user for the values and
  * then stores them in the script properties.
  */
-function checkFolioServerInfo() {
-  if (haveFolioServerInfo()) {
-    log('Folio url and tenant_id look okay');
+function checkFolioCredentials() {
+  if (haveFolioCredentials()) {
+    log('Folio credentials look okay');
   } else {
-    log('Folio url and/or tenant_id not set or are invalid');
-    setFolioServerInfo();
+    log('Folio url, tenant_id, and/or token are not set or are invalid');
+    getFolioCredentials();
   }
 }
 
 /**
  * Gets FOLIO server URL and tenant ID values from the user and stores them
  * in the script properties. The process is split into two parts: this
-   function creates a dialog using an HTML form, and then JavaScript code
-   embedded in the HTML form calls the separate function saveFolioInfo().
+ * function creates a dialog using an HTML form, and then JavaScript code
+ * embedded in the HTML form calls the separate function saveFolioInfo().
  */
-function setFolioServerInfo() {
+function getFolioCredentials() {
   try {
     let htmlContent = HtmlService
         .createTemplateFromFile('folio-form')
         .evaluate()
-        .setWidth(450)
-        .setHeight(240);
+        .setWidth(475)
+        .setHeight(330);
     log('showing dialog to ask user for Folio URL & tenant id');
-    ui.showModalDialog(htmlContent, 'FOLIO server information');
+    ui.showModalDialog(htmlContent, 'FOLIO information needed');
   } catch (err) {
     quit(err);
   }
 }
 
-function saveFolioServerInfo(url, tenant_id) {
+/**
+ * Gets called by the submit() method in folio-form.html.
+ */
+function saveFolioInfo(url, tenant_id, user, password) {
+  // Start with some basic sanity-checking.
+  log(`user submitted form with url = ${url}`);
   if (!validFolioUrl(url)) {
     ui.alert("The given URL does not look like a URL and cannot be used.");
     return;
@@ -115,64 +144,12 @@ function saveFolioServerInfo(url, tenant_id) {
     ui.alert("The given tenant ID looks like a URL instead. It cannot be used.");
     return;
   }
-  scriptProps.setProperty('folio_url', url);
-  scriptProps.setProperty('tenant_id', tenant_id);
-}
 
-
-// Functions for getting/setting FOLIO API token.
-// ............................................................................
+  // Looks good. Save those.
+  scriptProps.setProperty('boffo_folio_url', url);
+  scriptProps.setProperty('boffo_folio_tenant_id', tenant_id);
 
-function haveToken() {
-  return userProps.getProperty('token') != null;
-}
-
-function setToken() {
-  try {
-    if (haveToken()) {
-      log('found an existing token -- asking user if should use it');
-      let question = 'A token has already been stored. Generate a new one?';
-      if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.NO) {
-        log('user said to use existing token');
-        return;
-      } else {
-        log('user said to create new token');
-      }
-    }
-    // Didn't find an existing token, or user said to regenerate it.
-    checkFolioServerInfo();
-    createNewToken();
-  } catch (err) {
-    quit(err);
-  }
-}
-
-/**
- * Asks FOLIO for a new API token. The process is split into two parts: this
- * function creates a dialog using an HTML form, and then JavaScript code
- * embedded in the HTML form calls the separate function getNewToken().
- */
-function createNewToken() {
-  // The process is split into two parts: this function creates a dialog using
-  // an HTML form and JavaScript code embedded in the form calls getNewToken().
-  let htmlContent = HtmlService
-    .createTemplateFromFile('user-form')
-    .evaluate()
-    .setWidth(450)
-    .setHeight(240);
-  log('showing credentials form & handing off control to getNewToken()');
-  ui.showModalDialog(htmlContent, 'FOLIO user name and password');
-}
-
-function getNewToken(user, password) {
-  let url = scriptProps.getProperty('folio_url');
-  let tenant_id = scriptProps.getProperty('tenant_id');
-  if (validFolioUrl(url) && validTenantId(tenant_id)) {
-    log('Folio url and tenant_id look okay');
-  } else {
-    log('stored Folio url and/or tenant_id are invalid; aborting');
-    return;
-  }
+  // Now try to create the token.
   let endpoint = url + '/authn/login';
   let payload = JSON.stringify({
       'tenant': tenant_id,
@@ -187,7 +164,6 @@ function getNewToken(user, password) {
       'x-okapi-tenant': tenant_id
     }
   };
-  
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
   let http_code = response.getResponseCode();
@@ -195,8 +171,9 @@ function getNewToken(user, password) {
   if (http_code < 300) {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
+      // We have a token!
       let token = response_headers['x-okapi-token'];
-      userProps.setProperty('token', token);
+      userProps.setProperty('boffo_folio_api_token', token);
       log('got token from Folio and saved it');
     } else {
       ui.alert('Folio did not return a token');
@@ -211,19 +188,15 @@ function getNewToken(user, password) {
 // ............................................................................
 
 function lookUpBarcode() {
-  // Check if we have creds & ask user for them if we don't.
-  checkFolioServerInfo();
-  if (!haveToken()) {
-    setToken();
-  }
-
-  // If we still don't have valid creds, something is wrong & we bail.
-  if (!haveToken() || !haveFolioServerInfo()) {
+  // Check if we have creds, ask user for them if we don't, and if we don't
+  // end up getting the values, bail.
+  checkFolioCredentials();
+  if (!haveFolioCredentials()) {
     ui.alert('Unable to continue due to missing token and/or Folio server info');
     return;
   }
 
-  // We've got creds & we're ready to rock.
+  // If we get here, we have credentials and we are ready to do the thing.
   try {
     // Get array of values from spreadsheet. This will be a list of strings.
     let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
@@ -263,14 +236,14 @@ function lookUpBarcode() {
 function itemData(barcode) {
   ss.toast(`Getting data for ${barcode} …`, 'Boffo', -1);
 
-  let url = scriptProps.getProperty('folio_url');
+  let url = scriptProps.getProperty('boffo_folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
-      'x-okapi-tenant': scriptProps.getProperty('tenant_id'),
-      'x-okapi-token': userProps.getProperty('token')
+      'x-okapi-tenant': scriptProps.getProperty('boffo_folio_tenant_id'),
+      'x-okapi-token': userProps.getProperty('boffo_folio_api_token')
     }
   };
   
@@ -336,6 +309,31 @@ function getHelpURL() {
 }
 
 
+// Functions used in HTML files.
+// ............................................................................
+// These are called using the <?!= functioncall(); ?> mechanism in the HTML
+// files used in this project.
+
+/**
+ * Returns the content of an HTML file in this project. Code originally from
+ * https://developers.google.com/apps-script/guides/html/best-practices
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * Returns a scripts property value.
+ */
+function getProp(prop) {
+  if (prop) {
+    return scriptProps.getProperty(prop);
+  } else {
+    log(`called getProp() with an empty string`);
+  }
+}
+
+
 // Miscellaneous helper functions.
 // ............................................................................
 
@@ -368,15 +366,6 @@ function uniqueSheetName(baseName = 'Item Data') {
     newName = `${baseName} ${i}`;
   }
   return newName;
-}
-
-/**
- * Returns the content of an HTML file in this project. This is used in
- * the HTML files themselves. Code originally based on
- * https://developers.google.com/apps-script/guides/html/best-practices
- */
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function log(text) {

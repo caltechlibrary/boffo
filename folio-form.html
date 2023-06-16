@@ -20,27 +20,40 @@
           console.log("sending form");
           const url = document.getElementById("url").value;
           const tenant_id = document.getElementById("tenant_id").value;
-          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioServerInfo(url, tenant_id);
+          const user = document.getElementById("user").value;
+          const password = document.getElementById("password").value;
+          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id, user, password);
       }
     </script>
     <?!= include('stylesheet'); ?>
   </head>
   <body>
     <div class="explanatory-text">
-      <p>Boffo needs the FOLIO API URL and the tenant id.
-        Note that these are <b>not the same</b> as your user account
-        credentials. These values will be the same for everyone in
-        the library.</p>
+      <p>Boffo needs some information so that it can contact the FOLIO server
+        and create an API token. Your FOLIO login and password will <b>not</b>
+        be stored; only the token will be stored.</p>
     </div>
     <div class="form">
       <form id="form" onsubmit="sendForm(); return false;">
-        <label for="name" class="label">FOLIO API URL:</label>
+        <label for="name" class="label">Institute's FOLIO API URL:</label>
         <br>
-        <input type="text" name="url" id="url" class="field" autocomplete="url" required>
+        <input name="url" id="url" type="text" class="field"
+               placeholder="<?!= getProp('boffo_folio_url'); ?>" required>
         <br>
-        <label for="password" class="label">FOLIO tenant id:</label>
+        <label for="password" class="label">Institute's FOLIO tenant id:</label>
         <br>
-        <input type="text" name="tenant_id" id="tenant_id" class="field">
+        <input name="tenant_id" id="tenant_id" type="text" class="field"
+               placeholder="<?!= getProp('boffo_folio_tenant_id'); ?>" required>
+        <br>
+        <label for="name" class="label">Your FOLIO user name:</label>
+        <br>
+        <input name="user" id="user" type="text" class="field"
+               required>
+        <br>
+        <label for="password" class="label">Your user FOLIO password:</label>
+        <br>
+        <input name="password" id="password" type="password" class="field"
+               required>
         <br>
         <input type="submit" class="button">
       </form>
