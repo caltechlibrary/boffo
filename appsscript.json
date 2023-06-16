@@ -1,16 +1,18 @@
 {
   "timeZone": "America/Los_Angeles",
-  "dependencies": {
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "sheets": {
-    "macros": [{
-      "menuName": "foo",
-      "functionName": "foo"
-    }, {
-      "menuName": "getTwoTextValues",
-      "functionName": "getTwoTextValues"
-    }]
+    "macros": [
+      {
+        "menuName": "foo",
+        "functionName": "foo"
+      },
+      {
+        "menuName": "getTwoTextValues",
+        "functionName": "getTwoTextValues"
+      }
+    ]
   }
 }
