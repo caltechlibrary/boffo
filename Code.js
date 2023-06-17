@@ -28,12 +28,15 @@ const tenantIdPattern = new RegExp('\\d+');
 // The order here determines the order of the columns in the results sheet.
 // The length of this array also determines the number of columns.
 const fields = [
-  ['Barcode'            , (item) => item.barcode                ],
-  ['Title'              , (item) => item.title                  ],
-  ['Call number'        , (item) => item.callNumber             ],
-  ['Effective location' , (item) => item.effectiveLocation.name ],
-  ['Status'             , (item) => item.status.name            ],
-  ['UUID'               , (item) => item.id                     ],
+  ['Barcode'                  , (item) => item.barcode                                  ],
+  ['Title'                    , (item) => item.title                                    ],
+  ['Material type'            , (item) => item.materialType.name                        ],
+  ['Status'                   , (item) => item.status.name                              ],
+  ['Effective location'       , (item) => item.effectiveLocation.name                   ],
+  ['Effective call number'    , (item) => item.effectiveCallNumberComponents.callNumber ],
+  ['Enumeration'              , (item) => item.enumeration                              ],
+  ['Effective shelving order' , (item) => item.effectiveShelvingOrder                   ],
+  ['Item UUID'                , (item) => item.id                                       ],
 ]
 
 const helpURL = 'http://caltechlibrary.github.io/boffo';
@@ -186,8 +189,12 @@ function saveFolioInfo(url, tenant_id, user, password) {
 // Functions for looking up info about items.
 // ............................................................................
 
+/**
+ * Reads the barcodes selected in the current spreadsheet, looks them up in
+ * FOLIO, and creates a new sheet with columns containing item field values.
+ */
 function lookUpBarcode() {
-  // Check if we have creds, ask user for them if we don't, and if we don't
+  // Check if we have creds, ask user for them if we not, and if we don't
   // end up getting the values, bail.
   checkFolioCredentials();
   if (!haveFolioCredentials()) {
@@ -256,6 +263,7 @@ function itemData(barcode) {
   }
 
   let results = JSON.parse(response.getContentText());
+  log(`results for ${barcode}: ` + response.getContentText());
   if (results.totalRecords < 0) {
     log(`Folio did not return data for ${barcode}`);
     return;
@@ -271,7 +279,7 @@ function itemData(barcode) {
 
 function createResultsSheet(headings) {
   let sheet = ss.insertSheet(uniqueSheetName());
-  sheet.setColumnWidths(1, numColumns(), 130);
+  sheet.setColumnWidths(1, numColumns(), 150);
 
   // FIXME 1000 is arbitrary, picked because new Google sheets have 1000 rows,
   // but it's conceivable someone will create a sheet with more.
