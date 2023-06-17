@@ -206,11 +206,11 @@ function lookUpBarcode() {
   try {
     // Get array of values from spreadsheet. This will be a list of strings.
     let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
-    let values = selection.getActiveRange().getDisplayValues();
+    let barcodes = selection.getActiveRange().getDisplayValues();
 
     // Filter out strings that don't look like barcodes.
-    values = values.filter(x => barcodePattern.test(x));
-    if (values.length < 1) {
+    barcodes = barcodes.filter(x => barcodePattern.test(x));
+    if (barcodes.length < 1) {
       // Either the selection was empty, or filtering removed everything.
       ui.alert('Boffo', 'Please select some cells containing item barcodes.',
                ui.ButtonSet.OK);
@@ -218,7 +218,12 @@ function lookUpBarcode() {
     }
 
     // Get item data for each barcode.
-    let items = values.map((value) => itemData(value));
+    log(`getting ${barcodes.length} records`);
+    let items = [];
+    for (let i = 0, index = 1; i < barcodes.length; i++, index++) {
+      ss.toast(`Looking up ${barcodes[i]} (item ${index} of ${barcodes.length}) …`, 'Boffo', -1);
+      items.push(itemData(barcodes[i]));
+    }
 
     // Create a new sheet and write the data into it.
     let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
@@ -240,8 +245,6 @@ function lookUpBarcode() {
 }
 
 function itemData(barcode) {
-  ss.toast(`Getting data for ${barcode} …`, 'Boffo', -1);
-
   let url = scriptProps.getProperty('boffo_folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
