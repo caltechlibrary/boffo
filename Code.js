@@ -49,7 +49,7 @@ const cancel = new Error('cancelled');
 function onOpen() {
   // Note: the spaces after the icons are actually 2 unbreakable spaces.
   ui.createMenu('Boffo 🐝 ﻿')
-    .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcode')
+    .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcodes')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
@@ -193,7 +193,7 @@ function saveFolioInfo(url, tenant_id, user, password) {
  * Reads the barcodes selected in the current spreadsheet, looks them up in
  * FOLIO, and creates a new sheet with columns containing item field values.
  */
-function lookUpBarcode() {
+function lookUpBarcodes() {
   // Check if we have creds, ask user for them if we not, and if we don't
   // end up getting the values, bail.
   checkFolioCredentials();
@@ -210,32 +210,33 @@ function lookUpBarcode() {
 
     // Filter out strings that don't look like barcodes.
     barcodes = barcodes.filter(x => barcodePattern.test(x));
-    if (barcodes.length < 1) {
+    let numBarcodes = barcodes.length;
+    if (numBarcodes < 1) {
       // Either the selection was empty, or filtering removed everything.
-      ui.alert('Boffo', 'Please select some cells containing item barcodes.',
-               ui.ButtonSet.OK);
+      ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
       return;
     }
 
-    // Get item data for each barcode.
-    log(`getting ${barcodes.length} records`);
-    let items = [];
-    for (let i = 0, index = 1; i < barcodes.length; i++, index++) {
-      ss.toast(`Looking up ${barcodes[i]} (item ${index} of ${barcodes.length}) …`, 'Boffo', -1);
-      items.push(itemData(barcodes[i]));
-    }
-
-    // Create a new sheet and write the data into it.
+    // Create a new sheet where results will be written.
     let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
     let lastLetter = lastColumnLetter();
-    for (let i = 0; i < items.length; i++) {
+
+    // Get item data for each barcode & write to the sheet.
+    log(`getting ${numBarcodes} records`);
+    for (let i = 0, bc = barcodes[i]; i < numBarcodes; bc = barcodes[++i]) {
+      ss.toast(`Looking up ${bc} (item ${i+1} of ${numBarcodes}) …`, 'Boffo', -1);
+
+      let data = itemData(bc);
       let row = i + 2;                  // Offset +1 for header row.
-      log(`row = ${row}`);
-      let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
-      let data = fields.map((field) => field[1](items[i]));
-      log(`data = ${data}`);
-      cells.setValues([data]);
-    };
+      if (data !== null) {
+        let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
+        cells.setValues([fields.map((field) => field[1](data))]);
+      } else {
+        let cell = resultsSheet.getRange(`A${row}`);
+        cell.setValues([bc]);
+        cell.setFontColor('red');
+      }
+    }
     log('done writing data to sheet');
     ss.toast('Done! ✨', 'Boffo', 1);
   } catch (err) {
@@ -244,6 +245,9 @@ function lookUpBarcode() {
   return;
 }
 
+/**
+ * Returns the FOLIO item data for a given barcode.
+ */
 function itemData(barcode) {
   let url = scriptProps.getProperty('boffo_folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
@@ -267,19 +271,21 @@ function itemData(barcode) {
 
   let results = JSON.parse(response.getContentText());
   log(`results for ${barcode}: ` + response.getContentText());
-  if (results.totalRecords < 0) {
+  if (results.totalRecords == 0) {
     log(`Folio did not return data for ${barcode}`);
-    return;
+    return null;
   } else if (results.totalRecords > 1) {
     // FIXME put something in the output
     log(`Folio returned more than one item for ${barcode}`);
-    return;
+    return null;
   } else {
-    log(`returning result for ${barcode}`);
     return results.items[0];
   }
 }
 
+/**
+ * Creates the results sheet and returns it.
+ */
 function createResultsSheet(headings) {
   let sheet = ss.insertSheet(uniqueSheetName());
   sheet.setColumnWidths(1, numColumns(), 150);
@@ -306,10 +312,14 @@ function createResultsSheet(headings) {
 // The approach used here is based on a blog posting by Amit Agarwal from
 // 2022-05-07 at https://www.labnol.org/open-webpage-google-sheets-220507
 
+/**
+ * Opens a window on the Boffo help pages if possible, or opens a dialog
+ * that asks the user to click a link to get to the help pages.
+ */
 function getHelp() {
   const htmlTemplate = HtmlService.createTemplateFromFile('help');
-  // Setting this variable on the template makes it available in the script
-  // code embedded in the HTML source of help.html.
+  // Setting the next variable on the template makes it available in the
+  // script code embedded in the HTML source of help.html.
   htmlTemplate.boffoHelpURL = helpURL;
   const htmlContent = htmlTemplate.evaluate().setWidth(260).setHeight(180);
   log('showing help dialog');
