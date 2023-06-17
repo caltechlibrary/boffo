@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base target="_blank">
-    <script>
-     const helpURL = "https://caltechlibrary.github.io/boffo";
-     if (!window.open(helpURL)) {
-       window.onload = function() { document.getElementById('url').href = helpURL; };
-     }
-    </script>
     <?!= include('stylesheet'); ?>
   </head>
   <body>
     <div class="explanatory-text">
-      <p>Web browser security prevents Boffo from opening a new
-        window without your express action. Please click
-        on the link below to visit the help pages.</p>
+      <p>A content blocker or a browser security setting is preventing Boffo
+        from opening the help pages on your behalf. Please click the link
+        below instead.</p>
     </div>
-    <a id='url'>Boffo help pages ↗︎</a>
+    <a href="<?= boffoHelpURL; ?>" target="_blank">Visit help pages ↗︎</a>
   </body>
+  <script>
+    console.log('attempting to open help URL');
+    var windowReference = window.open('<?= boffoHelpURL; ?>', '_blank');
+    if (windowReference !== null) {
+      google.script.host.close();
+    } else {
+      console.log('failed to open help URL in new window');
+    }
+  </script>
 </html>

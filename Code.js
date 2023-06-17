@@ -49,7 +49,6 @@ function onOpen() {
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcode')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
-    .addItem('Set info', 'getFolioCredentials')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
     .addToUi();
 }
@@ -293,19 +292,18 @@ function createResultsSheet(headings) {
 
 // Functions for showing help.
 // ............................................................................
+// The approach used here is based on a blog posting by Amit Agarwal from
+// 2022-05-07 at https://www.labnol.org/open-webpage-google-sheets-220507
 
 function getHelp() {
-  let htmlContent = HtmlService
-    .createTemplateFromFile('help')
-    .evaluate()
-    .setWidth(300)
-    .setHeight(200);
+  const htmlTemplate = HtmlService.createTemplateFromFile('help');
+  // Setting this variable on the template makes it available in the script
+  // code embedded in the HTML source of help.html.
+  htmlTemplate.boffoHelpURL = helpURL;
+  const htmlContent = htmlTemplate.evaluate().setWidth(260).setHeight(180);
   log('showing help dialog');
   ui.showModalDialog(htmlContent, 'Help for Boffo');
-}
-
-function getHelpURL() {
-  return helpURL;
+  Utilities.sleep(1500);
 }
 
 
