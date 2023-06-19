@@ -400,12 +400,33 @@ function uniqueSheetName(baseName = 'Item Data') {
  * by this function match exactly the fields in the codemeta.json file.
  */  
 function getBoffoData() {
-  // Ideally, we would simply read the codemeta.json file that we already put
-  // in the script directory, because that holds all the data we want.
-  // Unfortunately, Google Apps Scripts only provides a way to read HTML files
-  // in the local script directory, not JSON files. But that won't stop us!
-  // Just stick JSON in the file, read it using HtmlService, and parse it.
-  return JSON.parse(HtmlService.createHtmlOutputFromFile('version').getContent());
+  // Ideally, we would simply read the codemeta.json file. Unfortunately,
+  // Google Apps Scripts only provides a way to read HTML files in the local
+  // script directory, not JSON files. But that won't stop us! If we add a
+  // symlink in the repository named "version.html" pointing to codemeta.json,
+  // voilà, we can read it using HtmlService and parse the content as JSON.
+
+  let codemetaFile = {};
+  let errorText = 'This installation of Boffo has been damaged somehow:'
+      + ' either some files are missing from the installation or one or'
+      + ' more files are not in the expected format. Please report this'
+      + ' error to the developers.';
+  let errorThrown = new Error('Unable to continue.');
+
+  try {  
+    codemetaFile = HtmlService.createHtmlOutputFromFile('version.html');
+  } catch ({name, message}) {
+    log('Unable to read version.html: ' + message);
+    ui.alert(errorText);
+    throw errorThrown;
+  }
+  try {
+    return JSON.parse(codemetaFile.getContent());
+  } catch ({name, message}) {
+    log('Unable to parse JSON content of version.html: ' + message);
+    ui.alert(errorText);
+    throw errorThrown;
+  }
 }
 
 function log(text) {
