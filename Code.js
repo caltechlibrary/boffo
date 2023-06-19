@@ -51,7 +51,7 @@ function onOpen() {
   ui.createMenu('Boffo 🐝 ﻿')
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcodes')
     .addSeparator()
-    .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'createNewToken')
+    .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'getFolioCredentials')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
     .addToUi();
 }
