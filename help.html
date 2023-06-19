@@ -2,7 +2,6 @@
 <html>
   <head>
     <?!= include('stylesheet'); ?>
-    <?!= include('version'); ?>
   </head>
   <body>
     <div class="explanatory-text">
@@ -10,11 +9,11 @@
         from opening the help pages on your behalf. Please click the link
         below instead.</p>
     </div>
-    <a href="<?= boffoHelpURL; ?>" target="_blank">Visit help pages ↗︎</a>
+    <a href="<?= boffo.softwareHelp; ?>" target="_blank">Visit help pages ↗︎</a>
   </body>
   <script>
     console.log('attempting to open help URL');
-    var windowReference = window.open('<?= boffoHelpURL; ?>', '_blank');
+    var windowReference = window.open('<?= boffo.softwareHelp; ?>', '_blank');
     if (windowReference !== null) {
       google.script.host.close();
     } else {

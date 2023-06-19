@@ -6,10 +6,6 @@
 // @website https://github.com/caltechlibrary/boffo
 // ============================================================================
 
-const version = '0.0.1';
-const homePage = 'http://caltechlibrary.github.io/boffo';
-const helpURL = 'http://caltechlibrary.github.io/boffo/usage';
-
 
 // Shortcuts to objects in the Google Apps Script environment.
 // ............................................................................
@@ -22,12 +18,6 @@ const scriptProps = PropertiesService.getScriptProperties();
 
 // Global constants.
 // ............................................................................
-
-// Regexp for testing that a string looks like a valid Caltech Library barcode.
-const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
-
-// Regexp for testing that a string looks something like a FOLIO tenant id.
-const tenantIdPattern = new RegExp('\\d+');
 
 // The order here determines the order of the columns in the results sheet.
 // The length of this array also determines the number of columns.
@@ -43,8 +33,11 @@ const fields = [
   ['Item UUID'                , (item) => item.id                                       ],
 ]
 
+// Regexp for testing that a string looks like a valid Caltech Library barcode.
+const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
 
-const cancel = new Error('cancelled');
+// Regexp for testing that a string looks something like a FOLIO tenant id.
+const tenantIdPattern = new RegExp('\\d+');
 
 
 // Menu definition.
@@ -56,14 +49,15 @@ function onOpen() {
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcodes')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'getFolioCredentials')
-    .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
-    .addItem('▥ ﻿ About Boffo', 'showAbout')    
+    .addItem('⁇ ﻿ ﻿Get help', 'getHelp')
+    .addItem('▥ ﻿ ﻿ About Boffo', 'showAbout')
     .addToUi();
 }
 
 function onInstall() {
   onOpen();
 }
+
 
 
 // Functions for getting/setting FOLIO server URL and tenant ID.
@@ -325,7 +319,7 @@ function getHelp() {
   const htmlTemplate = HtmlService.createTemplateFromFile('help');
   // Setting the next variable on the template makes it available in the
   // script code embedded in the HTML source of help.html.
-  htmlTemplate.boffoHelpURL = helpURL;
+  htmlTemplate.boffo = getBoffoData();
   const htmlContent = htmlTemplate.evaluate().setWidth(260).setHeight(180);
   log('showing help dialog');
   ui.showModalDialog(htmlContent, 'Help for Boffo');
@@ -334,11 +328,7 @@ function getHelp() {
 
 function showAbout() {
   const htmlTemplate = HtmlService.createTemplateFromFile('about');
-  // Setting the next variables on the template makes them available in the
-  // script code embedded in the HTML source of about.html.
-  htmlTemplate.boffoHomePage = homePage;
-  htmlTemplate.boffoHelpURL = helpURL;
-  htmlTemplate.boffoVersion = version;
+  htmlTemplate.boffo = getBoffoData();
   const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
   log('showing about dialog');
   ui.showModalDialog(htmlContent, 'About Boffo');
@@ -402,6 +392,20 @@ function uniqueSheetName(baseName = 'Item Data') {
     newName = `${baseName} ${i}`;
   }
   return newName;
+}
+
+/**
+ * Returns a JSON object containing fields for the version number and other
+ * info about this software. The field names and values on the object returned
+ * by this function match exactly the fields in the codemeta.json file.
+ */  
+function getBoffoData() {
+  // Ideally, we would simply read the codemeta.json file that we already put
+  // in the script directory, because that holds all the data we want.
+  // Unfortunately, Google Apps Scripts only provides a way to read HTML files
+  // in the local script directory, not JSON files. But that won't stop us!
+  // Just stick JSON in the file, read it using HtmlService, and parse it.
+  return JSON.parse(HtmlService.createHtmlOutputFromFile('version').getContent());
 }
 
 function log(text) {
