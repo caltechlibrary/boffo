@@ -6,6 +6,10 @@
 // @website https://github.com/caltechlibrary/boffo
 // ============================================================================
 
+const version = '0.0.1';
+const homePage = 'http://caltechlibrary.github.io/boffo';
+const helpURL = 'http://caltechlibrary.github.io/boffo/usage';
+
 
 // Shortcuts to objects in the Google Apps Script environment.
 // ............................................................................
@@ -39,7 +43,7 @@ const fields = [
   ['Item UUID'                , (item) => item.id                                       ],
 ]
 
-const helpURL = 'http://caltechlibrary.github.io/boffo';
+
 const cancel = new Error('cancelled');
 
 
@@ -53,6 +57,7 @@ function onOpen() {
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'getFolioCredentials')
     .addItem('⁇ ﻿ ﻿Get help', 'getHelp')    
+    .addItem('▥ ﻿ About Boffo', 'showAbout')    
     .addToUi();
 }
 
@@ -124,7 +129,7 @@ function getFolioCredentials() {
         .createTemplateFromFile('folio-form')
         .evaluate()
         .setWidth(475)
-        .setHeight(330);
+        .setHeight(350);
     log('showing dialog to ask user for Folio URL & tenant id');
     ui.showModalDialog(htmlContent, 'FOLIO information needed');
   } catch (err) {
@@ -325,6 +330,18 @@ function getHelp() {
   log('showing help dialog');
   ui.showModalDialog(htmlContent, 'Help for Boffo');
   Utilities.sleep(1500);
+}
+
+function showAbout() {
+  const htmlTemplate = HtmlService.createTemplateFromFile('about');
+  // Setting the next variables on the template makes them available in the
+  // script code embedded in the HTML source of about.html.
+  htmlTemplate.boffoHomePage = homePage;
+  htmlTemplate.boffoHelpURL = helpURL;
+  htmlTemplate.boffoVersion = version;
+  const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
+  log('showing about dialog');
+  ui.showModalDialog(htmlContent, 'About Boffo');
 }
 
 
