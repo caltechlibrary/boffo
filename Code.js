@@ -49,7 +49,6 @@ function onOpen() {
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'lookUpBarcodes')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'getFolioCredentials')
-    .addItem('⁇ ﻿ ﻿Get help', 'getHelp')
     .addItem('▥ ﻿ ﻿ About Boffo', 'showAbout')
     .addToUi();
 }
@@ -306,28 +305,13 @@ function createResultsSheet(headings) {
 }
 
 
-// Functions for showing help.
+// Functions for showing "about" screen.
 // ............................................................................
-// The approach used here is based on a blog posting by Amit Agarwal from
-// 2022-05-07 at https://www.labnol.org/open-webpage-google-sheets-220507
-
-/**
- * Opens a window on the Boffo help pages if possible, or opens a dialog
- * that asks the user to click a link to get to the help pages.
- */
-function getHelp() {
-  const htmlTemplate = HtmlService.createTemplateFromFile('help');
-  // Setting the next variable on the template makes it available in the
-  // script code embedded in the HTML source of help.html.
-  htmlTemplate.boffo = getBoffoData();
-  const htmlContent = htmlTemplate.evaluate().setWidth(260).setHeight(180);
-  log('showing help dialog');
-  ui.showModalDialog(htmlContent, 'Help for Boffo');
-  Utilities.sleep(1500);
-}
 
 function showAbout() {
   const htmlTemplate = HtmlService.createTemplateFromFile('about');
+  // Setting the next variable on the template makes it available in the
+  // script code embedded in the HTML source of about.html.
   htmlTemplate.boffo = getBoffoData();
   const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
   log('showing about dialog');
