@@ -162,7 +162,8 @@ function saveFolioInfo(url, tenant_id, user, password) {
     'payload': payload,
     'headers': {
       'x-okapi-tenant': tenant_id
-    }
+    },
+    'muteHttpExceptions': true
   };
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
@@ -177,6 +178,17 @@ function saveFolioInfo(url, tenant_id, user, password) {
       log('got token from Folio and saved it');
     } else {
       ui.alert('Folio did not return a token');
+    }
+  } else if (http_code == 422) {
+    let results = JSON.parse(response.getContentText());
+    let folioMsg = results.errors[0].message;
+    let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
+    if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
+      getFolioCredentials();
+    } else {
+      ui.alert('Use the menu option "Set FOLIO credentials" to add'
+               + ' valid credentials when you are ready. Until then,'
+               + ' FOLIO lookup operations will fail.');
     }
   } else {
     ui.alert(`An error occurred communicating with Folio (code ${http_code}).`);
