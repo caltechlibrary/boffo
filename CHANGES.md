@@ -1,7 +1,5 @@
-# Change log for REPOSITORY
+# Change log for Boffo
 
-## Version 0.0.0
+## Version 1.0.0
 
-* Write about a change here
-* Write about another change here
-* Write about a 3rd change
+First complete version and first release in Google Marketplace.
