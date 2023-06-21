@@ -8,20 +8,42 @@ API
     interface through which interactions between software can take place. It
     is an approach for software systems to communicate with each other.
 
+Barcode
+    In the context of Boffo, a barcode is a unique identifier assigned to
+    an item. For example, 
+
 Boffo
-    Boffo stands for _**Barc**o**des **f**rom **FO**lio_, a Google Apps
-    Script that provides a function for Google sheets to look up item
-    barcodes in FOLIO.
+    Boffo stands for _**B**arc**o**des **f**rom **FO**LIO_, a program written
+    in Google Apps Script that provides a function for
+    [Google Sheets](https://www.google.com/sheets/about/) to look
+    up item barcodes in FOLIO.
 
 FOLIO
     FOLIO stands for _Future Of Libraries Is OPEN_. It is an open-source
     library services platform.
 
-JSON
-    JSON stands for _JavaScript Object Notation_. An open-standard format for
-    storing data. The format uses a textual notation that is more or less
-    human readable. It can be used to store lists, texts, numbers,
-    attribute-value pairs, and more.
+Google Apps Script
+    [Google Apps Script](https://www.google.com/script/start/) is a
+    programming language and development environment that makes it possible
+    to add functionality to Google Sheets.
+
+Google Sheet
+    A [Google Sheet](https://www.google.com/sheets/about/) is an online
+    spreadsheet environment provided by Google.
+
+Item
+    In FOLIO, an _item_ refers to a single physical or electronic object that
+    can be circulated to patrons. This could be a book, a journal issue, an
+    object such as a digital tablet, and so on.
+
+    Sometimes _item_ is short for _item record_, which in FOLIO is a digital
+    database record that contains information needed to identify and track a
+    single item. The fields in this digital record include barcode,
+    availability, and material type.
+
+LSP
+    Library Services Platform. A digital system for managing items
+    maintained in a library.
 
 PAT
     PAT stands for _personal access token_. A PAT is string of characters
