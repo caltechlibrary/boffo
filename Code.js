@@ -63,9 +63,10 @@ function onInstall() {
 // ............................................................................
 
 /**
- * Does basic sanity-checking on a string to check that it looks like a URL.
+ * Checks that the stored FOLIO URL and tenant id are valid by contacting the
+ * server with a query that should work without needing a token.
  */
-function validFolioUrl(url) {
+function plausibleFolioUrl(url) {
   return url && url.startsWith('https://');
 }
 
@@ -73,27 +74,39 @@ function validFolioUrl(url) {
  * Does basic sanity-checking on a string to check that it looks like a FOLIO
  * tenant id and not (e.g.) a URL.
  */
-function validTenantId(id) {
-  return id && tenantIdPattern.test(id) && !id.startsWith('https');
-}
-
-/**
- * Does basic sanity-checking on a string to check that it looks like it could
- * be a FOLIO API token. 
- */
-function validAPIToken(token) {
-  return token && token.length > 150;
+function plausibleTenantId(id) {
+  return id && !id.startsWith('https') && tenantIdPattern.test(id);
 }
 
 /**
  * Returns true if it looks like the necessary data to use the FOLIO API
  * have been stored.
  */
-function haveFolioCredentials() {
-  let url   = scriptProps.getProperty('boffo_folio_url');
-  let id    = scriptProps.getProperty('boffo_folio_tenant_id');
+function haveValidCredentials() {
+  let url = scriptProps.getProperty('boffo_folio_url');
+  let id  = scriptProps.getProperty('boffo_folio_tenant_id');
+  if (!plausibleFolioUrl(url) || !plausibleTenantId(id)) {
+    return false;
+  }
+
+  // The only way to check the token is to try to make an API call.
+  let endpoint = url + '/instance-statuses?limit=0';
   let token = userProps.getProperty('boffo_folio_api_token');
-  return validFolioUrl(url) && validTenantId(id) && validAPIToken(token);
+  let options = {
+    'method': 'get',
+    'contentType': 'application/json',
+    'headers': {
+      'x-okapi-tenant': id,
+      'x-okapi-token': token
+    },
+    'muteHttpExceptions': true
+  };
+  
+  log(`testing if token is valid by doing HTTP get on ${endpoint}`);
+  let response = UrlFetchApp.fetch(endpoint, options);
+  let httpCode = response.getResponseCode();
+  log(`got response from Folio with HTTP code ${httpCode}`);
+  return httpCode < 400;
 }
 
 /**
@@ -102,7 +115,7 @@ function haveFolioCredentials() {
  * then stores them in the script properties.
  */
 function checkFolioCredentials() {
-  if (haveFolioCredentials()) {
+  if (haveValidCredentials()) {
     log('Folio credentials look okay');
   } else {
     log('Folio url, tenant_id, and/or token are not set or are invalid');
@@ -118,41 +131,49 @@ function checkFolioCredentials() {
  */
 function getFolioCredentials() {
   try {
-    let htmlContent = HtmlService
-        .createTemplateFromFile('folio-form')
-        .evaluate()
-        .setWidth(475)
-        .setHeight(350);
-    log('showing dialog to ask user for Folio URL & tenant id');
+    let htmlTemplate = HtmlService.createTemplateFromFile('folio-form');
+    // Setting the next variable on the template makes it available in the
+    // script code embedded in the HTML source of folio-form.html.
+    htmlTemplate.waiting = true;
+    const htmlContent = htmlTemplate.evaluate().setWidth(475).setHeight(350);
+    log('showing dialog to ask user for Folio creds');
     ui.showModalDialog(htmlContent, 'FOLIO information needed');
+    // I don't like busy loops but the alternatives look much more complicated.
+    let maxWaitSeconds = 60;
+    log(`waiting max of ${maxWaitSeconds}s for user to fill in dialog`);
+    while (htmlTemplate.waiting && --maxWaitSeconds*2 > 0) {
+      Utilities.sleep(500);             // 1/2 sec per loop.
+    }
+    log(`done; waiting = ${htmlTemplate.waiting}`);
   } catch (err) {
-    quit(err);
+    log('got exception asking for credentials: ' + err);
+    quit();
   }
 }
 
 /**
  * Gets called by the submit() method in folio-form.html.
  */
-function saveFolioInfo(url, tenant_id, user, password) {
+function saveFolioInfo(url, tenantId, user, password) {
   // Start with some basic sanity-checking.
   log(`user submitted form with url = ${url}`);
-  if (!validFolioUrl(url)) {
+  if (!plausibleFolioUrl(url)) {
     ui.alert("The given URL does not look like a URL and cannot be used.");
     return;
   }
-  if (!validTenantId(tenant_id)) {
-    ui.alert("The given tenant ID looks like a URL instead. It cannot be used.");
+  if (!plausibleTenantId(tenantId)) {
+    ui.alert("The given tenant ID does not look valid. It cannot be used.");
     return;
   }
 
   // Looks good. Save those.
   scriptProps.setProperty('boffo_folio_url', url);
-  scriptProps.setProperty('boffo_folio_tenant_id', tenant_id);
+  scriptProps.setProperty('boffo_folio_tenant_id', tenantId);
 
   // Now try to create the token.
   let endpoint = url + '/authn/login';
   let payload = JSON.stringify({
-      'tenant': tenant_id,
+      'tenant': tenantId,
       'username': user,
       'password': password
   });
@@ -161,15 +182,15 @@ function saveFolioInfo(url, tenant_id, user, password) {
     'contentType': 'application/json',
     'payload': payload,
     'headers': {
-      'x-okapi-tenant': tenant_id
+      'x-okapi-tenant': tenantId
     },
     'muteHttpExceptions': true
   };
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
-  let http_code = response.getResponseCode();
-  log(`got response from Folio with HTTP code ${http_code}`);
-  if (http_code < 300) {
+  let httpCode = response.getResponseCode();
+  log(`got response from Folio with HTTP code ${httpCode}`);
+  if (httpCode < 300) {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
       // We have a token!
@@ -179,7 +200,7 @@ function saveFolioInfo(url, tenant_id, user, password) {
     } else {
       ui.alert('Folio did not return a token');
     }
-  } else if (http_code == 422) {
+  } else if (httpCode == 422) {
     let results = JSON.parse(response.getContentText());
     let folioMsg = results.errors[0].message;
     let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
@@ -191,7 +212,7 @@ function saveFolioInfo(url, tenant_id, user, password) {
                + ' FOLIO lookup operations will fail.');
     }
   } else {
-    ui.alert(`An error occurred communicating with Folio (code ${http_code}).`);
+    ui.alert(`An error occurred communicating with Folio (code ${httpCode}).`);
   }
 }
 
@@ -204,12 +225,12 @@ function saveFolioInfo(url, tenant_id, user, password) {
  * FOLIO, and creates a new sheet with columns containing item field values.
  */
 function lookUpBarcodes() {
-  // Check if we have creds, ask user for them if we not, and if we don't
-  // end up getting the values, bail.
+  // First check that we have valid creds, and ask the user for them if not.
   checkFolioCredentials();
-  if (!haveFolioCredentials()) {
+  // If we still don't have valid creds, we bail.
+  if (!haveValidCredentials()) {
     ui.alert('Unable to continue due to missing token and/or Folio server info');
-    return;
+    quit();
   }
 
   // If we get here, we have credentials and we are ready to do the thing.
@@ -250,7 +271,8 @@ function lookUpBarcodes() {
     log('done writing data to sheet');
     ss.toast('Done! ✨', 'Boffo', 1);
   } catch (err) {
-    quit(err);
+    log('got exception looking up barcode(s): ' + err);
+    quit();
   }  
   return;
 }
@@ -273,12 +295,12 @@ function itemData(barcode) {
   
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
-  let http_code = response.getResponseCode();
-  log(`got response from Folio with HTTP code ${http_code}`);
+  let httpCode = response.getResponseCode();
+  log(`got response from Folio with HTTP code ${httpCode}`);
   // If an error occurred, report it now and stop.
-  if (http_code >= 300) {
+  if (httpCode >= 300) {
     log('alerting user to the error and stopping.');
-    switch (http_code) {
+    switch (httpCode) {
       case 401:
       case 403:
         ui.alert('A FOLIO authentication error occurred. The account'
@@ -303,15 +325,15 @@ function itemData(barcode) {
                  + ' to a temporary problem with FOLIO itself. Please wait'
                  + ' a moment, then retry the same operation. If the error'
                  + ' persists, please report it to the developers.'
-                 + ` (Error code ${http_code}.)`);
+                 + ` (Error code ${httpCode}.)`);
         break;
       default:
         ui.alert(`An error occurred communicating with FOLIO `
-                 + ` (code ${http_code}). Please report this`
+                 + ` (code ${httpCode}). Please report this`
                  + ' to the developers.');
     }
-    ss.toast('Stopping because of error.', 'Boffo', 2);
-    throw new Error('Stopped due to error.');
+    ss.toast('Stopping due to error.', 'Boffo', 2);
+    quit();
   }
 
   let results = JSON.parse(response.getContentText());
@@ -464,6 +486,7 @@ function log(text) {
   Logger.log(text);
 };
 
-function quit(msg) {
-  log(`stopped execution: ${msg}`);
+function quit() {
+  log('quitting');
+  throw new Error('Stopping.');
 }

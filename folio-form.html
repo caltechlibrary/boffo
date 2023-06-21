@@ -4,26 +4,28 @@
     <base target="_top">
     <meta charset="utf-8">    
     <script>
-      const gs = google.script;
+     const gs = google.script;
 
-      function success(output) {
-          console.log("got values from user");
-          gs.host.close();
-      }
-      
-      function failure(error) {
-          console.log("error in Folio form: " + error);
-          gs.host.close();
-      }
+     function success(output) {
+       gs.run.log("got values from user");
+       gs.host.close();
+     }
+     
+     function failure(error) {
+       gs.run.log("error in Folio form: " + error);
+       gs.host.close();
+     }
 
-      function sendForm() { 
-          console.log("sending form");
-          const url = document.getElementById("url").value;
-          const tenant_id = document.getElementById("tenant_id").value;
-          const user = document.getElementById("user").value;
-          const password = document.getElementById("password").value;
-          gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id, user, password);
-      }
+     function submitForm() { 
+       gs.run.log("user clicked submit on form");
+       const url = document.getElementById("url").value;
+       const tenant_id = document.getElementById("tenant_id").value;
+       const user = document.getElementById("user").value;
+       const password = document.getElementById("password").value;
+       gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id, user, password);
+       gs.run.log("setting 'waiting' to false");
+       <?= waiting = false; ?>
+     }
     </script>
     <?!= include('stylesheet'); ?>
   </head>
@@ -34,7 +36,7 @@
         be stored; only the token will be stored.</p>
     </div>
     <div class="form">
-      <form id="form" onsubmit="sendForm(); return false;">
+      <form id="form" onsubmit="submitForm(); return false;">
         <label for="name" class="label">Institute's FOLIO API URL:</label>
         <br>
         <input name="url" id="url" type="text" class="field"
