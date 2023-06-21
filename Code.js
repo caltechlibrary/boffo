@@ -267,16 +267,51 @@ function itemData(barcode) {
     'headers': {
       'x-okapi-tenant': scriptProps.getProperty('boffo_folio_tenant_id'),
       'x-okapi-token': userProps.getProperty('boffo_folio_api_token')
-    }
+    },
+    'muteHttpExceptions': true
   };
   
   log(`doing HTTP post on ${endpoint}`);
   let response = UrlFetchApp.fetch(endpoint, options);
   let http_code = response.getResponseCode();
   log(`got response from Folio with HTTP code ${http_code}`);
+  // If an error occurred, report it now and stop.
   if (http_code >= 300) {
-    ui.alert(`An error occurred communicating with Folio (code ${http_code}).`);
-    return;
+    log('alerting user to the error and stopping.');
+    switch (http_code) {
+      case 401:
+      case 403:
+        ui.alert('A FOLIO authentication error occurred. The account'
+                 + ' credentials used may be invalid, or the account'
+                 + ' may not have the necessary permissions in FOLIO'
+                 + ' to perform the action requested. You can try to'
+                 + ' reset the FOLIO credentials (use the Boffo menu'
+                 + ' option for that). If the error persists, please'
+                 + ' contact the FOLIO administrators for assistance.');
+        break;
+      case 404:
+        ui.alert('The API call made by Boffo does not appear to exist at'
+                 + ' the address Boffo attempted to use. This may be due'
+                 + ' to a temporary network glitch. Please wait a moment'
+                 + ' then retry the same operation again. If the problem'
+                 + ' persists, please report this to the developers.');
+        break;
+      case 409:
+      case 500:
+      case 501:
+        ui.alert('FOLIO turned an internal server error. This might be due'
+                 + ' to a temporary problem with FOLIO itself. Please wait'
+                 + ' a moment, then retry the same operation. If the error'
+                 + ' persists, please report it to the developers.'
+                 + ` (Error code ${http_code}.)`);
+        break;
+      default:
+        ui.alert(`An error occurred communicating with FOLIO `
+                 + ` (code ${http_code}). Please report this`
+                 + ' to the developers.');
+    }
+    ss.toast('Stopping because of error.', 'Boffo', 2);
+    throw new Error('Stopped due to error.');
   }
 
   let results = JSON.parse(response.getContentText());
