@@ -48,14 +48,44 @@
     width: 32em !important;
   }
 
-  .button {
+  input.button {
     float: right;
+    text-align: center;
     margin-top: 0.5em;
+    margin-right: 0.2rem;
     font-size: 100%;
     background-color: #4964db;
     color: #ffffff;
     padding: 0.25rem 0.5rem;
     border-radius: 0.5rem;
-    box-shadow: 1px 1px 2px #dddddd;
+    border: none;
   }
+
+  input.button:focus,
+  input.button:hover {
+    outline: 1px solid #0000ff;
+    -webkit-box-shadow: inset 0px 0px 3px #ffffff;
+    -moz-box-shadow: inset 0px 0px 3px #ffffff;
+    box-shadow: inset 0px 0px 3px #ffffff;
+  }
+
+  input.button.cancel {
+    text-align: center;
+    width: 4rem;
+    padding: 0.2em;
+    margin-top: 0.5em;
+    background-color: #ffffff;
+    border: 1px solid #aa0000;
+    color: #aa0000;
+  }
+
+  input.button.cancel:focus,
+  input.button.cancel:hover {
+    background: #e5e5e5;
+    outline: 1px solid #ff0000;
+    -webkit-box-shadow: inset 0px 0px 3px #c1c1c1;
+    -moz-box-shadow: inset 0px 0px 3px #c1c1c1;
+    box-shadow: inset 0px 0px 3px #c1c1c1;
+  }
+
 </style>

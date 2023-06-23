@@ -6,25 +6,86 @@
     <script>
      const gs = google.script;
 
-     function success(output) {
-       gs.run.log("got values from user");
-       gs.host.close();
+     // Log messages in browser console and in GAS execution log.
+     function log(msg) {
+       console.log(msg);
+       gs.run.log(msg);
      }
      
-     function failure(error) {
-       gs.run.log("error in Folio form: " + error);
-       gs.host.close();
+     // Call host.close() after a delay. Needed for 2 reasons:
+     //
+     // 1) It seems that calls made after gs.host.close() are not executed,
+     //    which is a critical problem for what we need to do. In particular,
+     //    one of the things done here is to call a subsequent function after
+     //    interacting with the user and closing the dialog. Since calling
+     //    gs.host.close() seems to prevent anything else from happening, we
+     //    can't just call gs.host.close() to close the dialog and then make
+     //    our call; conversely, we can't make our call first and afterwards
+     //    close the dialog, because then the dialog stays visible the whole
+     //    time our code is working on (e.g.) looking up barcodes. Solution:
+     //    we put the gs.host.close() on a timer, which lets us make our call
+     //    while the timer runs in parallel and (after a delay) calls close().
+     //
+     // 2) It seems that even calls made right *before* gs.host.close() also
+     //    don't get executed (or at least, if I call Logger.log right before
+     //    it, the log statement doesn't show in Google's cloud log.) Once
+     //    again, a delay between the call and gs.host.close() solves it.
+     //
+     // Problem #2 is why the rest of this file never calls gs.host.close()
+     // directly, even in cases where problem #1 is not at stake.
+     function delayedClose() {
+       setTimeout(() => { gs.host.close(); }, 300);
      }
 
-     function submitForm() { 
-       gs.run.log("user clicked submit on form");
+     // Takes result of calling saveFolioInfo(...) when no exceptions occur.
+     function success(haveCreds) {
+       const msg = ((haveCreds ? "Successfully obtained" : "Failed to obtain")
+                  + " a FOLIO API token");
+       const nextFunction = <?= callAfterSuccess ?>;
+       log(msg);
+       if (!haveCreds) {
+         if (nextFunction) {
+           log(`not calling ${nextFunction} because we failed to get creds`);
+         }
+         delayedClose();
+       } else if (nextFunction) {
+         log(`calling ${nextFunction}`);
+         delayedClose();
+         gs.run.callBoffoFunction(nextFunction);
+       } else {
+         // We have creds but no function to call, so just close.
+         delayedClose();
+         gs.run.note('FOLIO token saved.');
+       }
+     }
+
+     // Logs an error and closes the dialog. Invoked when saveFolioInfo(...)
+     // fails with an exception.
+     function failure(error) {
+       log("got an error: " + error);
+       delayedClose();
+     }
+
+     // Invoked when the user clicks either "submit" or "cancel" on the form,
+     // and calls saveFolioInfo(...) if the choice was "submit".
+     function submitForm(which) { 
+       log(`user clicked submit ${which} on form`);
+       if (which == "Cancel") {
+         log("returning without saving input");
+         delayedClose();
+         return;
+       }
+
+       log("collecting values and invoking saveFolioInfo");
        const url = document.getElementById("url").value;
-       const tenant_id = document.getElementById("tenant_id").value;
+       const tenantId = document.getElementById("tenantId").value;
        const user = document.getElementById("user").value;
        const password = document.getElementById("password").value;
-       gs.run.withSuccessHandler(success).withFailureHandler(failure).saveFolioInfo(url, tenant_id, user, password);
-       gs.run.log("setting 'waiting' to false");
-       <?= waiting = false; ?>
+       const nextFunction = <?= callAfterSuccess ?>;
+       gs.run
+         .withSuccessHandler(success)
+         .withFailureHandler(failure)
+         .saveFolioInfo(url, tenantId, user, password, nextFunction);
      }
     </script>
     <?!= include('stylesheet'); ?>
@@ -36,16 +97,26 @@
         be stored; only the token will be stored.</p>
     </div>
     <div class="form">
-      <form id="form" onsubmit="submitForm(); return false;">
+      <form id="form" onsubmit="submitForm(this.submitted); return false;">
         <label for="name" class="label">Institute's FOLIO API URL:</label>
         <br>
         <input name="url" id="url" type="text" class="field"
-               value="<?!= getProp('boffo_folio_url'); ?>" required>
+               pattern="^https://[a-zA-Z].*"
+               oninvalid="this.setCustomValidity('Please enter a URL')"
+               oninput="this.setCustomValidity('')"
+               onchange="this.setCustomValidity('')" 
+               value="<?!= getProp('boffo_folio_url'); ?>"
+               autofocus required>
         <br>
         <label for="password" class="label">Institute's FOLIO tenant id:</label>
         <br>
-        <input name="tenant_id" id="tenant_id" type="text" class="field"
-               value="<?!= getProp('boffo_folio_tenant_id'); ?>" required>
+        <input name="tenantId" id="tenantId" type="text" class="field"
+               pattern="^[a-zA-Z][a-zA-Z0-9]+"
+               oninvalid="this.setCustomValidity('This does not look like a tenant ID')"
+               oninput="this.setCustomValidity('')"
+               onchange="this.setCustomValidity('')" 
+               value="<?!= getProp('boffo_folio_tenant_id'); ?>"
+               required>
         <br>
         <label for="name" class="label">Your FOLIO user name:</label>
         <br>
@@ -57,9 +128,11 @@
         <input name="password" id="password" type="password" class="field"
                required>
         <br>
-        <input type="submit" class="button">
+        <input type="submit" class="button" value="Submit"
+               onclick="this.form.submitted=this.value"/>
+        <input type="submit" class="button cancel" value="Cancel"
+               onclick="this.form.submitted=this.value" formnovalidate/>
       </form>
     </div>
   </body>
-  
 </html>
