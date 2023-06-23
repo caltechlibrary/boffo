@@ -13,8 +13,7 @@
 // Shortcuts to objects in the Google Apps Script environment.
 const ui = SpreadsheetApp.getUi();
 const ss = SpreadsheetApp.getActiveSpreadsheet();
-const userProps = PropertiesService.getUserProperties();
-const scriptProps = PropertiesService.getScriptProperties();
+const props = PropertiesService.getUserProperties();
 
 // FOLIO item record fields put into the results sheet when the user calls on
 // findBarcodes. The order determines the order of the columns in the results
@@ -59,6 +58,23 @@ function onOpen() {
 
 function onInstall() {
   onOpen();
+
+  // We use script properties to pre-populate the FOLIO OKAPI URL and tenant
+  // id value fields in the credentials form (folio-form.html). However, the
+  // way that the script properties work is that anyone in the org can change
+  // the value if they type some other value in our credentials form. So, to
+  // avoid that, we copy the values to the user properties and work off that.
+  const scriptProps = PropertiesService.getScriptProperties();
+  let url = scriptProps.getProperty('boffo_folio_url');
+  if (url) {
+    props.setProperty('boffo_folio_url', url);
+    log(`set user property boffo_folio_url to ${url}`);
+  }
+  let id  = scriptProps.getProperty('boffo_folio_tenant_id');
+  if (id) {
+    props.setProperty('boffo_folio_tenant_id', id);
+    log(`set user property boffo_folio_tenant_id to ${id}`);
+  }
 }
 
 
@@ -118,14 +134,14 @@ function lookUpBarcodes() {
  * Returns the FOLIO item data for a given barcode.
  */
 function itemData(barcode) {
-  let url = scriptProps.getProperty('boffo_folio_url');
+  let url = props.getProperty('boffo_folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
-      'x-okapi-tenant': scriptProps.getProperty('boffo_folio_tenant_id'),
-      'x-okapi-token': userProps.getProperty('boffo_folio_api_token')
+      'x-okapi-tenant': props.getProperty('boffo_folio_tenant_id'),
+      'x-okapi-token': props.getProperty('boffo_folio_api_token')
     },
     'muteHttpExceptions': true
   };
@@ -257,9 +273,9 @@ function buildCredentialsDialog(callAfterSuccess = '') {
  * let any exceptions occur at the time commands are executing.
  */
 function haveCredentials() {
-  return (nonempty(scriptProps.getProperty('boffo_folio_url'))
-          && nonempty(scriptProps.getProperty('boffo_folio_tenant_id'))
-          && nonempty(userProps.getProperty('boffo_folio_api_token')));
+  return (nonempty(props.getProperty('boffo_folio_url'))
+          && nonempty(props.getProperty('boffo_folio_tenant_id'))
+          && nonempty(props.getProperty('boffo_folio_api_token')));
 }
 
 /**
@@ -315,56 +331,71 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     'muteHttpExceptions': true
   };
   log(`doing HTTP post on ${endpoint}`);
-  let response = UrlFetchApp.fetch(endpoint, options);
-  let httpCode = response.getResponseCode();
-  log(`got response from Folio with HTTP code ${httpCode}`);
-  if (httpCode < 300) {
-    let response_headers = response.getHeaders();
-    if ('x-okapi-token' in response_headers) {
-      // We have a token!
-      let token = response_headers['x-okapi-token'];
-      userProps.setProperty('boffo_folio_api_token', token);
-      log('got token from Folio and saved it');
-      // Save the URL & tenant id now, since we know they work.
-      scriptProps.setProperty('boffo_folio_url', url);
-      scriptProps.setProperty('boffo_folio_tenant_id', tenantId);
-      return true;
+  try {
+    let response = UrlFetchApp.fetch(endpoint, options);
+    let httpCode = response.getResponseCode();
+    log(`got response from Folio with HTTP code ${httpCode}`);
+
+    if (httpCode < 300) {
+      let response_headers = response.getHeaders();
+      if ('x-okapi-token' in response_headers) {
+        let token = response_headers['x-okapi-token'];
+        props.setProperty('boffo_folio_api_token', token);
+        log('got token from Folio and saved it');
+        // Also save the URL & tenant id now, since we know they work.
+        props.setProperty('boffo_folio_url', url);
+        props.setProperty('boffo_folio_tenant_id', tenantId);
+        return true;
+      } else {
+        quit('Unexpectedly failed to get a token back',
+             'The call to FOLIO was successful, but FOLIO did not return'
+             + ' a token. This situation should never occur and probably'
+             + ' indicates a bug in Boffo. Please report this to the'
+             + ' developers and describe what led to it.', true);
+        return false;
+      }
+
+    } else if (httpCode < 500) {
+      let responseContent = response.getContentText();
+      let folioMsg = responseContent;
+      if (nonempty(responseContent) && responseContent.startsWith('{')) {
+        let results = JSON.parse(response.getContentText());
+        folioMsg = results.errors[0].message;
+      }
+      let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
+      if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
+        // Recursive call.
+        log('user chose to try again');
+        if (callAfterSuccess) {
+          withCredentials(eval(callAfterSuccess));
+        } else {
+          getCredentials();
+        }
+        return haveCredentials();
+      } else {
+        quit("Stopped at the user's request",
+             'You can use the menu option "Set FOLIO credentials" to'
+             + ' add valid credentials when you are ready. Until then,'
+             + ' FOLIO lookup operations will fail.', true);
+        return false;
+      }
+
     } else {
-      quit('Unexpectedly failed to get a token back',
-           'The call to FOLIO was successful, but FOLIO did not return'
-           + ' a token. This situation should never occur and probably'
-           + ' indicates a bug in Boffo. Please report this to the'
-           + ' developers and describe what led to it.', true);
+      quit('Failed due to a FOLIO server or network problem',
+           'This may be temporary. Try again after waiting a short time. If'
+           + ' the error persists, please contact the FOLIO administrators'
+           + ' and/or the developers of Boffo. (When reporting  the error,'
+           + ` please mention this was an HTTP code ${httpCode} error.)`, true);
       return false;
     }
-  } else if (httpCode < 500) {
-    let responseContent = response.getContentText();
-    let folioMsg = '';
-    if (nonempty(responseContent) && responseContent.startsWith('{')) {
-      let results = JSON.parse(response.getContentText());
-      folioMsg = results.errors[0].message;
-    } else {
-      folioMsg = responseContent;
-    }
-    let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
-    if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
-      // Recursive call.
-      log('user chose to try again');
-      withCredentials(eval(callAfterSuccess));
-      return haveCredentials();
-    } else {
-      quit("Stopped at the user's request",
-           'You can use the menu option "Set FOLIO credentials" to'
-           + ' add valid credentials when you are ready. Until then,'
-           + ' FOLIO lookup operations will fail.', true);
-      return false;
-    }
-  } else {
-    quit('Failed due to a FOLIO server or network problem',
-         'This may be temporary. Try again after waiting a short time. If'
-         + ' the error persists, please contact the FOLIO administrators'
-         + ' and/or the developers of Boffo. (When reporting  the error,'
-         + ` please mention this was an HTTP code ${httpCode} error.)`, true);
+  } catch ({name, message}) {
+    log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
+    quit('Failed due to an unrecognized error', 
+         'Please carefully check the values entered in the form. For example,'
+         + ' is the URL correct and well-formed? Are there any typos'
+         + ' anywhere? If you cannot find the problem or it appears to be'
+         + ' elsewhere (perhaps a bug in Boffo), please contact the developers'
+         + ` and report the following error message:  ${message}`, true);
     return false;
   }
   return haveCredentials();
@@ -389,9 +420,9 @@ function callBoffoFunction(name) {
  * Note: not currently used, but kept in case it's needed in the future.
  */
 function haveValidToken() {
-  let url   = scriptProps.getProperty('boffo_folio_url');
-  let id    = scriptProps.getProperty('boffo_folio_tenant_id');
-  let token = userProps.getProperty('boffo_folio_api_token');
+  let url   = props.getProperty('boffo_folio_url');
+  let id    = props.getProperty('boffo_folio_tenant_id');
+  let token = props.getProperty('boffo_folio_api_token');
 
   // The only way to check the token is to try to make an API call.
   let endpoint = url + '/instance-statuses?limit=0';
@@ -422,7 +453,7 @@ function haveValidToken() {
  */
 function menuItemClearToken() {
   log('deleting stored token');
-  userProps.deleteProperty('boffo_folio_api_token');
+  props.deleteProperty('boffo_folio_api_token');
   ui.alert('Your stored FOLIO token has been deleted. You can use the'
            + ' menu option "Set FOLIO credentials" to generate a new one.');
 }
@@ -458,11 +489,11 @@ function include(filename) {
 }
 
 /**
- * Returns a scripts property value.
+ * Returns a user property value.
  */
 function getProp(prop) {
   if (prop) {
-    return scriptProps.getProperty(prop);
+    return props.getProperty(prop);
   } else {
     log(`called getProp() with an empty string`);
   }
