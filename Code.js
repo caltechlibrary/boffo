@@ -330,64 +330,14 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     },
     'muteHttpExceptions': true
   };
+
   log(`doing HTTP post on ${endpoint}`);
+  let response = undefined;
+  let httpCode = undefined;
   try {
-    let response = UrlFetchApp.fetch(endpoint, options);
-    let httpCode = response.getResponseCode();
+    response = UrlFetchApp.fetch(endpoint, options);
+    httpCode = response.getResponseCode();
     log(`got response from Folio with HTTP code ${httpCode}`);
-
-    if (httpCode < 300) {
-      let response_headers = response.getHeaders();
-      if ('x-okapi-token' in response_headers) {
-        let token = response_headers['x-okapi-token'];
-        props.setProperty('boffo_folio_api_token', token);
-        log('got token from Folio and saved it');
-        // Also save the URL & tenant id now, since we know they work.
-        props.setProperty('boffo_folio_url', url);
-        props.setProperty('boffo_folio_tenant_id', tenantId);
-        return true;
-      } else {
-        quit('Unexpectedly failed to get a token back',
-             'The call to FOLIO was successful, but FOLIO did not return'
-             + ' a token. This situation should never occur and probably'
-             + ' indicates a bug in Boffo. Please report this to the'
-             + ' developers and describe what led to it.', true);
-        return false;
-      }
-
-    } else if (httpCode < 500) {
-      let responseContent = response.getContentText();
-      let folioMsg = responseContent;
-      if (nonempty(responseContent) && responseContent.startsWith('{')) {
-        let results = JSON.parse(response.getContentText());
-        folioMsg = results.errors[0].message;
-      }
-      let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
-      if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
-        // Recursive call.
-        log('user chose to try again');
-        if (callAfterSuccess) {
-          withCredentials(eval(callAfterSuccess));
-        } else {
-          getCredentials();
-        }
-        return haveCredentials();
-      } else {
-        quit("Stopped at the user's request",
-             'You can use the menu option "Set FOLIO credentials" to'
-             + ' add valid credentials when you are ready. Until then,'
-             + ' FOLIO lookup operations will fail.', true);
-        return false;
-      }
-
-    } else {
-      quit('Failed due to a FOLIO server or network problem',
-           'This may be temporary. Try again after waiting a short time. If'
-           + ' the error persists, please contact the FOLIO administrators'
-           + ' and/or the developers of Boffo. (When reporting  the error,'
-           + ` please mention this was an HTTP code ${httpCode} error.)`, true);
-      return false;
-    }
   } catch ({name, message}) {
     log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
     quit('Failed due to an unrecognized error', 
@@ -398,6 +348,61 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
          + ` and report the following error message:  ${message}`, true);
     return false;
   }
+
+  if (httpCode < 300) {
+    let response_headers = response.getHeaders();
+    if ('x-okapi-token' in response_headers) {
+      let token = response_headers['x-okapi-token'];
+      props.setProperty('boffo_folio_api_token', token);
+      log('got token from Folio and saved it');
+      // Also save the URL & tenant id now, since we know they work.
+      props.setProperty('boffo_folio_url', url);
+      props.setProperty('boffo_folio_tenant_id', tenantId);
+      return true;
+    } else {
+      log('no token in the FOLIO response headers');
+      quit('Unexpectedly failed to get a token back',
+           'The call to FOLIO was successful, but FOLIO did not return'
+           + ' a token. This situation should never occur and probably'
+           + ' indicates a bug in Boffo. Please report this to the'
+           + ' developers and describe what led to it.', true);
+      return false;
+    }
+
+  } else if (httpCode < 500) {
+    let responseContent = response.getContentText();
+    let folioMsg = responseContent;
+    if (nonempty(responseContent) && responseContent.startsWith('{')) {
+      let results = JSON.parse(response.getContentText());
+      folioMsg = results.errors[0].message;
+    }
+    let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
+    if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
+      // Recursive call.
+      log('user chose to try again');
+      if (callAfterSuccess) {
+        withCredentials(eval(callAfterSuccess));
+      } else {
+        getCredentials();
+      }
+      return haveCredentials();
+    } else {
+      quit("Stopped at the user's request",
+           'You can use the menu option "Set FOLIO credentials" to'
+           + ' add valid credentials when you are ready. Until then,'
+           + ' FOLIO lookup operations will fail.', true);
+      return false;
+    }
+
+  } else {
+    quit('Failed due to a FOLIO server or network problem',
+         'This may be temporary. Try again after waiting a short time. If'
+         + ' the error persists, please contact the FOLIO administrators'
+         + ' and/or the developers of Boffo. (When reporting  the error,'
+         + ` please mention this was an HTTP code ${httpCode} error.)`, true);
+    return false;
+  }
+
   return haveCredentials();
 }
 
