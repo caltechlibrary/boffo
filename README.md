@@ -2,9 +2,10 @@
 
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items given a list of barcodes.
 
+[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=green&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
 [![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/boffo/LICENSE)
-[![clasp](https://img.shields.io/badge/Built%20with-clasp-4285f4.svg?style=flat-square&color=327fa8)](https://github.com/google/clasp)
-[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=b44e88&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
+[![made-with-javascript](https://img.shields.io/badge/Made%20with-JavaScript-1f425f.svg?style=flat-square&color=327fa8)](https://www.javascript.com)
+[![Boffo](https://img.shields.io/badge/Google%20Marketplace-Boffo-4285f4.svg?style=flat-square&color=b44e88)](https://workspace.google.com/marketplace/app/boffo/830370816631)
 
 
 ## Table of contents
@@ -29,25 +30,25 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is an add-on for [Google Sheets](h
 For Caltech Library staff, Boffo is available from the Google Marketplace for add-ons. To install it, look for the _Extensions_ menu at the top of your Google sheet, click on it, then click on the item _Get add-ons_ from the _Add-ons_ submenu:
 
 <p align="center">
-<img width="600px" src="docs/_static/media/google-sheet-extension-menu-add-ons.png">
+<img width="90%" src="docs/_static/media/google-sheet-extension-menu-add-ons.png">
 </p>
 
 In the Google Workspace Marketplace panel that is shown next, click on the button titled _Internal apps_ near the top:
 
 <p align="center">
-<img width="600px" src="docs/_static/media/google-marketplace-panel.png">
+<img width="90%" src="docs/_static/media/google-marketplace-panel.png">
 </p>
 
 This will change the panel to show apps available for the Caltech Library staff. Boffo should be visible there. Click on the item for Boffo,
 
 <p align="center">
-<img width="600px" src="docs/_static/media/boffo-in-google-marketplace.png">
+<img width="90%" src="docs/_static/media/boffo-in-google-marketplace.png">
 </p>
 
 which will make the Google panel show more details about Boffo and a blue _Install_ button:
 
 <p align="center">
-<img width="600px" src="docs/_static/media/boffo-installation-button.png">
+<img width="90%" src="docs/_static/media/boffo-installation-button.png">
 </p>
 
 Click on the _Install_ button. Google will show you several dialogs asking for your permission to install Boffo. Accept and allow the installation, then close the Google Marketplace panel.
@@ -55,12 +56,33 @@ Click on the _Install_ button. Google will show you several dialogs asking for y
 
 ## Quick start
 
+Once installed as an Add-on on a Google Sheet, Boffo will present itself as a menu item in the _Extensions_ menu across the top of the sheet. Selecting the _Boffo_ item in the _Extensions_ menu will present several items in a submenu:
 
+<p align="center">
+<img width="550px" src="docs/_static/media/boffo-menu-items.png">
+</p>
+
+Boffo's main function is _Look up barcodes in FOLIO_ and its use is very simple:
+1. Select some item barcodes in your Google spreadsheet
+2. Pull down the _Extensions_ menu
+3. Select _Look up barcodes in FOLIO_ from the Boffo menu
+
+<p align="center">
+<img width="90%" src="docs/_static/media/invoking-look-up-barcodes.png">
+</p>
+
+Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ran it, then add the results of the item lookups to the new sheet.
+
+<p align="center">
+<img width="90%" src="docs/_static/media/sample-output.png">
+</p>
+
+If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
 
 
 ## Usage
 
-When you first use it in a Google sheet, Boffo will initially request your FOLIO account login and password, but it only uses that information to ask FOLIO for an API token. Boffo never stores your FOLIO login or password, nor does it need any other personal information to do its work.
+Please see the [usage section in the Boffo documentation](https://caltechlibrary.github.io/boffo/usage.html) for more details about Boffo's features and how to use them.
 
 
 ## Known issues and limitations
@@ -68,7 +90,7 @@ When you first use it in a Google sheet, Boffo will initially request your FOLIO
 Immediately after you install Boffo as an add-on in a Google Sheet, Google will show you a pop-up titled "Boffo has been installed!" that looks like this:
 
 <p align="center">
-<img width="600px" src="docs/_static/media/google-screen-after-boffo-installation.png">
+<img width="90%" src="docs/_static/media/google-screen-after-boffo-installation.png">
 </p>
 
 This pop-up is incorrect: it states that Boffo has been installed under a menu titled _Add-ons_, but in fact, Google installs it in a menu titled _Extensions_. Please ignore the instructions to look for an _Add-ons_ menu. This pop-up is automatically generated by Google's system and not under the control of Boffo, and we can't make changes to it.
