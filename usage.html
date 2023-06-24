@@ -230,7 +230,42 @@
   <ul class="md-nav__list" data-md-scrollfix="">
   </ul>
 </nav>
+      <ul class="md-nav__list"> 
+    <li class="md-nav__item">
+    
+    
+      <a href="#look-up-barcodes" class="md-nav__link">Look up barcodes</a>
       
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
+      <a href="#reset-folio-credentials" class="md-nav__link">Reset FOLIO credentials</a>
+      
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
+      <a href="#clear-folio-token" class="md-nav__link">Clear FOLIO token</a>
+      
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
+      <a href="#get-info-about-boffo" class="md-nav__link">Get info about Boffo</a>
+      
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
+      <a href="#get-help-and-report-issues" class="md-nav__link">Get help and report issues</a>
+      
+    
+    </li></ul>
     
     </li>
     <li class="md-nav__item">
@@ -271,7 +306,71 @@
             
   <section id="usage">
 <h1 id="usage--page-root">Usage<a class="headerlink" href="#usage--page-root" title="Permalink to this heading">¶</a></h1>
-<p><em>forthcoming …</em></p>
+<p>Once installed as an Add-on on a Google Sheet, Boffo will present itself as a menu item in the <em>Extensions</em> menu across the top of the sheet. Selecting the <em>Boffo</em> item in the <em>Extensions</em> menu will present several items in a submenu:</p>
+<figure>
+<img src="_static/media/boffo-menu-items.png" width="550px"/>
+<figcaption>Boffo's menu can be found in the <em>Extensions</em> menu item in Google Sheets.
+</figcaption>
+</figure>
+<section id="look-up-barcodes">
+<h2 id="look-up-barcodes">Look up barcodes<a class="headerlink" href="#look-up-barcodes" title="Permalink to this heading">¶</a></h2>
+<p>Boffo’s main function is <em>Look up barcodes in FOLIO</em> and its use is very simple:</p>
+<ol class="arabic simple">
+<li><p>Select some item barcodes in your Google spreadsheet</p></li>
+<li><p>Pull down the <em>Extensions</em> menu</p></li>
+<li><p>Select <em>Look up barcodes in FOLIO</em> from the Boffo menu</p></li>
+</ol>
+<figure>
+<img src="_static/media/invoking-look-up-barcodes.png" width="800px"/>
+<figcaption>Select some barcodes in your spreadsheet and select the <em>Look up barcodes in FOLIO</em> menu item.
+</figcaption>
+</figure>
+<p>If this is the first time you’ve used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and <em>not</em> your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. When it’s done, Boffo will show you the results in a new sheet in the same spreadsheet.</p>
+<p>On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).</p>
+</section>
+<section id="reset-folio-credentials">
+<h2 id="reset-folio-credentials">Reset FOLIO credentials<a class="headerlink" href="#reset-folio-credentials" title="Permalink to this heading">¶</a></h2>
+<p>If you ever want to change the login that you use to access FOLIO services with Boffo, you can do so by selecting the <em>Set FOLIO credentials</em> item from Boffo’s menu:</p>
+<figure>
+<img src="_static/media/menu-item-set-folio-credentials.png" width="550px"/>
+</figure>
+<p>This will make Boffo bring up the same FOLIO inforrmation and account details form that it used to ask you for your login and password the first time:</p>
+<figure>
+<img src="_static/media/folio-credentials-form.png" width="95%"/>
+<figcaption>The form to reset your FOLIO credentials. (Note: this screenshot shows blank values for all the fields, but for Caltech Library staff who install Boffo as an internal add-on from the Google Marketplace, the values of the FOLIO URL and tenant id will be prefilled with the correct values and you will only need to enter the user name and password.)
+</figcaption>
+</figure>
+</section>
+<section id="clear-folio-token">
+<h2 id="clear-folio-token">Clear FOLIO token<a class="headerlink" href="#clear-folio-token" title="Permalink to this heading">¶</a></h2>
+<p>If you’d like to reset your FOLIO API token deliberately, you can do so by selecting the menu item <em>Clear FOLIO token</em>:</p>
+<figure>
+<img src="_static/media/menu-item-clear-token.png" width="550px"/>
+<figcaption>The menu item to unset/clear your current FOLIO token.
+</figcaption>
+</figure>
+<p>This wil remove the stored token, and the next time you use the <em>Look up barcodes in FOLIO</em> menu item (or you use the <em>Set FOLIO credentials</em> menu item), Boffo will ask you for your credentials again and then regenerate a new token.</p>
+</section>
+<section id="get-info-about-boffo">
+<h2 id="get-info-about-boffo">Get info about Boffo<a class="headerlink" href="#get-info-about-boffo" title="Permalink to this heading">¶</a></h2>
+<p>The <em>About Boffo</em> menu item can be used to find out more about Boffo:</p>
+<figure>
+<img src="_static/media/menu-item-about-boffo.png" width="550px"/>
+</figure>
+<p>Perhaps the most useful part of the information dialog that is shown by the <em>About Boffo</em> command is Boff’s version number on the second line:</p>
+<figure>
+<img src="_static/media/about-boffo.png" width="95%"/>
+<figcaption>The information box shown by the <em>About Boffo</em> menu item.
+</figcaption>
+</figure>
+</section>
+<section id="get-help-and-report-issues">
+<h2 id="get-help-and-report-issues">Get help and report issues<a class="headerlink" href="#get-help-and-report-issues" title="Permalink to this heading">¶</a></h2>
+<p>The last item in the Boffo menu is <em>Help</em>. The contents are automatically generated by Google’s Add-ons framework.  Included in this information dialog is a link that lets you report issues.</p>
+<figure>
+<img src="_static/media/boffo-help.png" width="95%"/>
+</figure>
+</section>
 </section>
 
 
@@ -321,7 +420,7 @@
               
           </div>
             Last updated on
-              Jun 23, 2023.
+              Jun 24, 2023.
             <br/>
             Created using
             <a href="http://www.sphinx-doc.org/">Sphinx</a> 7.0.1.

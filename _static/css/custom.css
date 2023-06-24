@@ -198,3 +198,7 @@ img.shadowed {
         margin-left: 12.1rem;
     }
 }
+
+figure figcaption em {
+  font-style: normal !important;
+}
