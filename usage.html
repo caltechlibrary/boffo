@@ -325,8 +325,12 @@
 <figcaption>Select some barcodes in your spreadsheet and select the <em>Look up barcodes in FOLIO</em> menu item.
 </figcaption>
 </figure>
-<p>If this is the first time you’ve used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and <em>not</em> your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. When it’s done, Boffo will show you the results in a new sheet in the same spreadsheet.</p>
-<p>On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).</p>
+<p>Boffo will create a new sheet titled “Item Data” in the spreadsheet where you ran it, then add the results of the item lookups to the new sheet.</p>
+<figure>
+<img src="_static/media/sample-output.png" width="90%"/>
+<figcaption>Boffo creates a new sheet in the same spreadsheet with the results of the lookup.</figcaption>
+</figure>
+<p>If this is the first time you’ve used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and <em>not</em> your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).</p>
 </section>
 <section id="reset-folio-credentials">
 <h2 id="reset-folio-credentials">Reset FOLIO credentials<a class="headerlink" href="#reset-folio-credentials" title="Permalink to this heading">¶</a></h2>

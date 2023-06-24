@@ -21,9 +21,14 @@ Boffo's main function is _Look up barcodes in FOLIO_ and its use is very simple:
 </figcaption>
 </figure>
 
-If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. When it's done, Boffo will show you the results in a new sheet in the same spreadsheet.
+Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ran it, then add the results of the item lookups to the new sheet.
 
-On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
+<figure>
+<img width="90%" src="_static/media/sample-output.png">
+<figcaption>Boffo creates a new sheet in the same spreadsheet with the results of the lookup.</figcaption>
+</figure>
+
+If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
 
 
 ## Reset FOLIO credentials
