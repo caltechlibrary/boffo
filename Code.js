@@ -10,11 +10,6 @@
 // Global constants.
 // ............................................................................
 
-// Shortcuts to objects in the Google Apps Script environment.
-const ui = SpreadsheetApp.getUi();
-const ss = SpreadsheetApp.getActiveSpreadsheet();
-const props = PropertiesService.getUserProperties();
-
 // FOLIO item record fields put into the results sheet when the user calls on
 // findBarcodes. The order determines the order of the columns in the results
 // sheet, and the length of this array determines the number of columns.
@@ -46,7 +41,7 @@ const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-
 function onOpen() {
   // BEWARE: in the addItem calls below, the spaces after the icons are
   // actually 2 unbreakable spaces. This detail is invisible in the editor.
-  ui.createMenu('Boffo')
+  SpreadsheetApp.getUi().createMenu('Boffo')
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'menuItemLookUpBarcodes')
     .addSeparator()
     .addItem('🪪 ﻿ ﻿Set FOLIO credentials', 'menuItemGetCredentials')
@@ -65,14 +60,15 @@ function onInstall() {
   // the value if they type some other value in our credentials form. So, to
   // avoid that, we copy the values to the user properties and work off that.
   const scriptProps = PropertiesService.getScriptProperties();
+  const userProps = PropertiesService.getUserProperties();
   let url = scriptProps.getProperty('boffo_folio_url');
   if (url) {
-    props.setProperty('boffo_folio_url', url);
+    userProps.setProperty('boffo_folio_url', url);
     log(`set user property boffo_folio_url to ${url}`);
   }
   let id  = scriptProps.getProperty('boffo_folio_tenant_id');
   if (id) {
-    props.setProperty('boffo_folio_tenant_id', id);
+    userProps.setProperty('boffo_folio_tenant_id', id);
     log(`set user property boffo_folio_tenant_id to ${id}`);
   }
 }
@@ -102,6 +98,7 @@ function lookUpBarcodes() {
   let numBarcodes = barcodes.length;
   if (numBarcodes < 1) {
     // Either the selection was empty, or filtering removed everything.
+    const ui = SpreadsheetApp.getUi();
     ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
     return;
   }
@@ -134,6 +131,7 @@ function lookUpBarcodes() {
  * Returns the FOLIO item data for a given barcode.
  */
 function itemData(barcode) {
+  const props = PropertiesService.getUserProperties();
   let url = props.getProperty('boffo_folio_url');
   let endpoint = url + '/inventory/items?query=barcode=' + barcode;
   let options = {
@@ -211,7 +209,7 @@ function itemData(barcode) {
  * Creates the results sheet and returns it.
  */
 function createResultsSheet(headings) {
-  let sheet = ss.insertSheet(uniqueSheetName());
+  let sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(uniqueSheetName());
   sheet.setColumnWidths(1, numColumns(), 150);
 
   // FIXME 1000 is arbitrary, picked because new Google sheets have 1000 rows,
@@ -248,7 +246,7 @@ function menuItemGetCredentials() {
 function getCredentials() {
   let dialog = buildCredentialsDialog();
   log('showing dialog to get credentials');
-  ui.showModalDialog(dialog, 'FOLIO credentials');
+  SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO credentials');
 }
 
 /**
@@ -273,6 +271,7 @@ function buildCredentialsDialog(callAfterSuccess = '') {
  * let any exceptions occur at the time commands are executing.
  */
 function haveCredentials() {
+  const props = PropertiesService.getUserProperties();
   return (nonempty(props.getProperty('boffo_folio_url'))
           && nonempty(props.getProperty('boffo_folio_tenant_id'))
           && nonempty(props.getProperty('boffo_folio_api_token')));
@@ -295,7 +294,7 @@ function withCredentials(funcToCall) {
   } else {
     log(`need to get credentials before calling ${funcToCall.name}`);
     let dialog = buildCredentialsDialog(funcToCall.name);
-    ui.showModalDialog(dialog, 'FOLIO information needed');
+    SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO information needed');
   }
 }
 
@@ -353,6 +352,7 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     let response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
       let token = response_headers['x-okapi-token'];
+      const props = PropertiesService.getUserProperties();
       props.setProperty('boffo_folio_api_token', token);
       log('got token from Folio and saved it');
       // Also save the URL & tenant id now, since we know they work.
@@ -377,6 +377,7 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
       folioMsg = results.errors[0].message;
     }
     let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
+    const ui = SpreadsheetApp.getUi();
     if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
       // Recursive call.
       log('user chose to try again');
@@ -425,6 +426,7 @@ function callBoffoFunction(name) {
  * Note: not currently used, but kept in case it's needed in the future.
  */
 function haveValidToken() {
+  const props = PropertiesService.getUserProperties();
   let url   = props.getProperty('boffo_folio_url');
   let id    = props.getProperty('boffo_folio_tenant_id');
   let token = props.getProperty('boffo_folio_api_token');
@@ -458,7 +460,8 @@ function haveValidToken() {
  */
 function menuItemClearToken() {
   log('deleting stored token');
-  props.deleteProperty('boffo_folio_api_token');
+  PropertiesService.getUserProperties().deleteProperty('boffo_folio_api_token');
+  const ui = SpreadsheetApp.getUi();
   ui.alert('Your stored FOLIO token has been deleted. You can use the'
            + ' menu option "Set FOLIO credentials" to generate a new one.');
 }
@@ -474,7 +477,7 @@ function menuItemShowAbout() {
   htmlTemplate.boffo = getBoffoMetadata();
   const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
   log('showing about dialog');
-  ui.showModalDialog(htmlContent, 'About Boffo');
+  SpreadsheetApp.getUi().showModalDialog(htmlContent, 'About Boffo');
 }
 
 
@@ -498,7 +501,7 @@ function include(filename) {
  */
 function getProp(prop) {
   if (prop) {
-    return props.getProperty(prop);
+    return PropertiesService.getUserProperties().getProperty(prop);
   } else {
     log(`called getProp() with an empty string`);
   }
@@ -528,7 +531,8 @@ function lastColumnLetter() {
  * is unique.
  */
 function uniqueSheetName(baseName = 'Item Data') {
-  let names = ss.getSheets().map((sheet) => sheet.getName());
+  let sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  let names = sheets.map((sheet) => sheet.getName());
 
   // Compare candidate name against existing sheet names & increment counter
   // until we no longer get a match against any existing name.
@@ -562,14 +566,14 @@ function getBoffoMetadata() {
     codemetaFile = HtmlService.createHtmlOutputFromFile('version.html');
   } catch ({name, message}) {
     log('Unable to read version.html: ' + message);
-    ui.alert(errorText);
+    SpreadsheetApp.getUi().alert(errorText);
     throw errorThrown;
   }
   try {
     return JSON.parse(codemetaFile.getContent());
   } catch ({name, message}) {
     log('Unable to parse JSON content of version.html: ' + message);
-    ui.alert(errorText);
+    SpreadsheetApp.getUi().alert(errorText);
     throw errorThrown;
   }
 }
@@ -581,7 +585,7 @@ function getBoffoMetadata() {
  * is 2 seconds.
  */
 function note(message, duration = 2) {
-  ss.toast(message, 'Boffo', duration);
+  SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Boffo', duration);
 }
 
 /**
@@ -597,7 +601,7 @@ function quit(why, details = '', showAlert = false) {
   };
   Stopped.prototype = Error.prototype;
   if (showAlert) {
-    ui.alert(why + '. ' + details);
+    SpreadsheetApp.getUi().alert(why + '. ' + details);
   }
   throw new Stopped();
 }
