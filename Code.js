@@ -23,7 +23,7 @@ const fields = [
   ['Enumeration'              , (item) => item.enumeration],
   ['Effective shelving order' , (item) => item.effectiveShelvingOrder],
   ['Item UUID'                , (item) => item.id],
-]
+];
 
 // Regexp for testing that a string looks like a valid Caltech Library barcode.
 const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
@@ -157,37 +157,37 @@ function itemData(barcode) {
       case 401:
       case 403:
         quit('Stopped due to an error',
-             'A FOLIO authentication error occurred. This can be'
-             + ' due to an invalid FOLIO URL, tenant ID, or token,'
-             + " or an account that doesn't have the permissions"
-             + ' to perform the action requested. You can try to'
-             + ' reset the FOLIO credentials (use the Boffo menu'
-             + ' option for that). If the error persists, please'
-             + ' contact the FOLIO administrator for assistance.');
+             'A FOLIO authentication error occurred. This can be' +
+             ' due to an invalid FOLIO URL, tenant ID, or token,' +
+             ' or if the user account lacks FOLIO permissions to' +
+             ' perform the action requested. To fix this, try to' +
+             ' reset the FOLIO credentials (using the Boffo menu' +
+             ' option for that).  If this error persists, please' +
+             ' contact your FOLIO administrator for assistance.');
         break;
       case 404:
         quit('Stopped due to an error',
-             'The API call made by Boffo does not appear to exist at'
-             + ' the address Boffo attempted to use. This may be due'
-             + ' to a temporary network glitch. Please wait a moment'
-             + ' then retry the same operation again. If the problem'
-             + ' persists, please report this to the developers.');
+             'The API call made by Boffo does not seem to exist at' +
+             ' the address Boffo attempted to use. This may be due' +
+             ' to a temporary network glitch. Please wait a moment' +
+             ' then retry the same operation again. If the problem' +
+             ' persists, please report this to the developers.');
         break;
       case 409:
       case 500:
       case 501:
         quit('Stopped due to an error',
-             'FOLIO turned an internal server error. This might be due'
-             + ' to a temporary problem with FOLIO itself. Please wait'
-             + ' a moment, then retry the same operation. If the error'
-             + ' persists, please report it to the developers.'
-             + ` (Error code ${httpCode}.)`);
+             'FOLIO turned an internal server error. This may be due' +
+             ' to a temporary problem with FOLIO itself. Please wait' +
+             ' a moment, then retry the same operation. If the error' +
+             ' persists, please report it to the developers.' +
+             ` (Error code ${httpCode}.)`);
         break;
       default:
         quit('Stopped due to an error',
-             `An error occurred communicating with FOLIO `
-             + ` (code ${httpCode}). Please report this`
-             + ' to the developers.');
+             `An error occurred communicating with FOLIO` +
+             ` (code ${httpCode}). Please report this to` +
+             ' the developers.');
     }
   }
 
@@ -272,9 +272,9 @@ function buildCredentialsDialog(callAfterSuccess = '') {
  */
 function haveCredentials() {
   const props = PropertiesService.getUserProperties();
-  return (nonempty(props.getProperty('boffo_folio_url'))
-          && nonempty(props.getProperty('boffo_folio_tenant_id'))
-          && nonempty(props.getProperty('boffo_folio_api_token')));
+  return (nonempty(props.getProperty('boffo_folio_url')) &&
+          nonempty(props.getProperty('boffo_folio_tenant_id')) &&
+          nonempty(props.getProperty('boffo_folio_api_token')));
 }
 
 /**
@@ -331,8 +331,8 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   };
 
   log(`doing HTTP post on ${endpoint}`);
-  let response = undefined;
-  let httpCode = undefined;
+  let response;
+  let httpCode;
   try {
     response = UrlFetchApp.fetch(endpoint, options);
     httpCode = response.getResponseCode();
@@ -340,11 +340,11 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   } catch ({name, message}) {
     log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
     quit('Failed due to an unrecognized error', 
-         'Please carefully check the values entered in the form. For example,'
-         + ' is the URL correct and well-formed? Are there any typos'
-         + ' anywhere? If you cannot find the problem or it appears to be'
-         + ' elsewhere (perhaps a bug in Boffo), please contact the developers'
-         + ` and report the following error message:  ${message}`, true);
+         'Please carefully check the values entered in the form. For example,' +
+         ' is the URL correct and well-formed?  Are there any typos anywhere?' +
+         ' If you cannot find the problem or it appears to be a bug in Boffo,' +
+         ' please contact the developers and report the following error' +
+         ` message:  ${message}`, true);
     return false;
   }
 
@@ -362,10 +362,10 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     } else {
       log('no token in the FOLIO response headers');
       quit('Unexpectedly failed to get a token back',
-           'The call to FOLIO was successful, but FOLIO did not return'
-           + ' a token. This situation should never occur and probably'
-           + ' indicates a bug in Boffo. Please report this to the'
-           + ' developers and describe what led to it.', true);
+           'The call to FOLIO was successful, but FOLIO did not return' +
+           ' a token. This situation should never occur and probably' +
+           ' indicates a bug in Boffo. Please report this to the' +
+           ' developers and describe what led to it.', true);
       return false;
     }
 
@@ -389,18 +389,18 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
       return haveCredentials();
     } else {
       quit("Stopped at the user's request",
-           'You can use the menu option "Set FOLIO credentials" to'
-           + ' add valid credentials when you are ready. Until then,'
-           + ' FOLIO lookup operations will fail.', true);
+           'You can use the menu option "Set FOLIO credentials" to' +
+           ' add valid credentials when you are ready. Until then,' +
+           ' FOLIO lookup operations will fail.', true);
       return false;
     }
 
   } else {
     quit('Failed due to a FOLIO server or network problem',
-         'This may be temporary. Try again after waiting a short time. If'
-         + ' the error persists, please contact the FOLIO administrators'
-         + ' and/or the developers of Boffo. (When reporting  the error,'
-         + ` please mention this was an HTTP code ${httpCode} error.)`, true);
+         'This may be temporary. Try again after waiting a short time. If' +
+         ' the error persists, please contact the FOLIO administrators or' +
+         ' the developers of Boffo. (When reporting this error, please be' +
+         ` sure to mention this was an HTTP code ${httpCode} error.)`, true);
     return false;
   }
 
@@ -462,8 +462,8 @@ function menuItemClearToken() {
   log('deleting stored token');
   PropertiesService.getUserProperties().deleteProperty('boffo_folio_api_token');
   const ui = SpreadsheetApp.getUi();
-  ui.alert('Your stored FOLIO token has been deleted. You can use the'
-           + ' menu option "Set FOLIO credentials" to generate a new one.');
+  ui.alert('Your stored FOLIO token has been deleted. You can use the' +
+           ' menu option "Set FOLIO credentials" to generate a new one.');
 }
 
 
@@ -556,10 +556,10 @@ function getBoffoMetadata() {
   // voilà, we can read it using HtmlService and parse the content as JSON.
 
   let codemetaFile = {};
-  let errorText = 'This installation of Boffo has been damaged somehow:'
-      + ' either some files are missing from the installation or one or'
-      + ' more files are not in the expected format. Please report this'
-      + ' error to the developers.';
+  let errorText = 'This installation of Boffo has been damaged somehow:' +
+      ' either some files are missing from the installation or one or' +
+      ' more files are not in the expected format. Please report this' +
+      ' error to the developers.';
   let errorThrown = new Error('Unable to continue.');
 
   try {  
@@ -598,7 +598,7 @@ function quit(why, details = '', showAlert = false) {
   function Stopped() {
     this.name = why;
     this.message = details;
-  };
+  }
   Stopped.prototype = Error.prototype;
   if (showAlert) {
     SpreadsheetApp.getUi().alert(why + '. ' + details);
