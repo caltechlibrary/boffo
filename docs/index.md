@@ -28,6 +28,7 @@ maxdepth: 2
 ---
 installation.md
 usage.md
+known-issues.md
 glossary.md
 colophon.md
 ```
