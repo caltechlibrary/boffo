@@ -44,7 +44,7 @@ This pop-up states that Boffo has been installed under a menu titled _Add-ons_, 
 
 ## Directly from source
 
-If you are not at Caltech, you will not be able find Boffo in the Google Marketplace for add-ons. Instead, you will have to use install the code from the source files in some way. The following subsections describe two possible methods.
+If you are not at Caltech, you will not be able find Boffo in the Google Marketplace for add-ons. Instead, you will have to install the code from the source files in some way. The following subsections describe two possible methods.
 
 ### Copying the Google Apps Script project
 
