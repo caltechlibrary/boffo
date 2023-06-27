@@ -84,7 +84,7 @@ figure img.border {
 }
 
 figure img.shadow {
-  filter: drop-shadow(10px 10px 10px #dddddd);
+  filter: drop-shadow(10px 10px 10px #cccccc);
   margin-bottom: 1em;
 }
 
