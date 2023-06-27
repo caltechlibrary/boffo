@@ -163,12 +163,13 @@ dt {
 }
 
 h1 {
+  font-size: 2em !important;;
   font-weight: 700 !important;
   color: #000 !important;
 }
 
 h2 {
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: #000;
 }
 
