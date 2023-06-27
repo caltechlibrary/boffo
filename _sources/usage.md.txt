@@ -3,7 +3,7 @@
 Once installed as an Add-on on a Google Sheet, Boffo will present itself as a menu item in the _Extensions_ menu across the top of the sheet. Selecting the _Boffo_ item in the _Extensions_ menu will present several items in a submenu:
 
 <figure>
-<img width="550px" src="_static/media/boffo-menu-items.png">
+<img class="shadow border" width="550px" src="_static/media/boffo-menu-items.png">
 <figcaption>Boffo's menu can be found in the <em>Extensions</em> menu item in Google Sheets.
 </figcaption>
 </figure>
@@ -16,7 +16,7 @@ Boffo's main function is _Look up barcodes in FOLIO_ and its use is very simple:
 3. Select _Look up barcodes in FOLIO_ from the Boffo menu
 
 <figure>
-<img width="800px" src="_static/media/invoking-look-up-barcodes.png">
+<img class="shadow border" width="800px" src="_static/media/invoking-look-up-barcodes.png">
 <figcaption>Select some barcodes in your spreadsheet and select the <em>Look up barcodes in FOLIO</em> menu item.
 </figcaption>
 </figure>
@@ -24,7 +24,7 @@ Boffo's main function is _Look up barcodes in FOLIO_ and its use is very simple:
 Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ran it, then add the results of the item lookups to the new sheet.
 
 <figure>
-<img width="90%" src="_static/media/sample-output.png">
+<img class="shadow border" width="90%" src="_static/media/sample-output.png">
 <figcaption>Boffo creates a new sheet in the same spreadsheet with the results of the lookup.</figcaption>
 </figure>
 
@@ -36,10 +36,10 @@ If this is the first time you've used Boffo, it will first request your FOLIO ac
 If you ever want to change the login that you use to access FOLIO services with Boffo, you can do so by selecting the _Set FOLIO credentials_ item from Boffo's menu:
 
 <figure>
-<img width="550px" src="_static/media/menu-item-set-folio-credentials.png">
+<img class="shadow border" width="550px" src="_static/media/menu-item-set-folio-credentials.png">
 </figure>
 
-This will make Boffo bring up the same FOLIO inforrmation and account details form that it used to ask you for your login and password the first time:
+This will make Boffo bring up the same FOLIO information and account details form that it used to ask you for your login and password the first time:
 
 <figure>
 <img width="95%" src="_static/media/folio-credentials-form.png">
@@ -53,12 +53,12 @@ This will make Boffo bring up the same FOLIO inforrmation and account details fo
 If you'd like to reset your FOLIO API token deliberately, you can do so by selecting the menu item _Clear FOLIO token_:
 
 <figure>
-<img width="550px" src="_static/media/menu-item-clear-token.png">
+<img class="shadow border" width="550px" src="_static/media/menu-item-clear-token.png">
 <figcaption>The menu item to unset/clear your current FOLIO token.
 </figcaption>
 </figure>
 
-This wil remove the stored token, and the next time you use the _Look up barcodes in FOLIO_ menu item (or you use the _Set FOLIO credentials_ menu item), Boffo will ask you for your credentials again and then regenerate a new token.
+This Will remove the stored token, and the next time you use the _Look up barcodes in FOLIO_ menu item (or you use the _Set FOLIO credentials_ menu item), Boffo will ask you for your credentials again and then regenerate a new token.
 
 
 ## Get info about Boffo
@@ -66,10 +66,10 @@ This wil remove the stored token, and the next time you use the _Look up barcode
 The _About Boffo_ menu item can be used to find out more about Boffo:
 
 <figure>
-<img width="550px" src="_static/media/menu-item-about-boffo.png">
+<img class="shadow border" width="550px" src="_static/media/menu-item-about-boffo.png">
 </figure>
 
-Perhaps the most useful part of the information dialog that is shown by the _About Boffo_ command is Boff's version number on the second line:
+Perhaps the most useful part of the information dialog that is shown by the _About Boffo_ command is Boffo's version number on the second line:
 
 <figure>
 <img width="95%" src="_static/media/about-boffo.png">

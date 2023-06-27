@@ -10,7 +10,7 @@ API
 
 Barcode
     In the context of Boffo, a barcode is a unique identifier assigned to
-    an item. For example, 
+    an item in FOLIO.
 
 Boffo
     Boffo stands for _**B**arc**o**des **f**rom **FO**LIO_, a program written
@@ -19,8 +19,8 @@ Boffo
     up item barcodes in FOLIO.
 
 FOLIO
-    FOLIO stands for _Future Of Libraries Is OPEN_. It is an open-source
-    library services platform.
+    [FOLIO](https://www.folio.org) stands for _Future Of Libraries Is OPEN_.
+    It is an open-source library services platform.
 
 Google Apps Script
     [Google Apps Script](https://www.google.com/script/start/) is a
