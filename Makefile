@@ -23,7 +23,7 @@ endif
 # The following is based on the approach posted by Jonathan Ben-Avraham to
 # Stack Overflow in 2014 at https://stackoverflow.com/a/25668869
 
-programs_needed = gh git jq sed clasp
+programs_needed = gh git jq jshint sed clasp
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
 
@@ -108,14 +108,21 @@ report: vars
 	$(info $(green)doi$(reset)     = $(this_doi))
 
 
+# make watch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+watch:
+	clasp -P .clasp.json.caltech  push --watch
+
+
 # make lint & make test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 lint:
 	jshint Code.js
 
+
 # make release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-release: | confirm-release release-on-github print-instructions
+release: | confirm-release release-on-github sync-projects print-instructions
 
 confirm-release:
 	@read -p "Have you updated the version number? [y/N] " ans && : $${ans:=N} ;\
@@ -128,16 +135,17 @@ confirm-release:
 
 update-all: update-meta update-citation
 
+# Note that this doesn't replace "version" in codemeta.json, because that's the
+# variable from which this makefile gets its version number in the first place.
 update-meta:
 	$(eval date := $(shell date "+%F"))
-	@sed -i .bak -e "/version/ s/[0-9].[0-9][0-9]*.[0-9][0-9]*/$(version)/" codemeta.json
-	@sed -i .bak -e "/softwareVersion/ s/[0-9].[0-9][0-9]*.[0-9][0-9]*/$(version)/" codemeta.json
-	@sed -i .bak -e "/datePublished/ s/[0-9][0-9-]*/$(date)/" codemeta.json
+	@sed -i .bak -e '/"softwareVersion"/ s/: ".*"/: "$(version)"/' codemeta.json
+	@sed -i .bak -e '/"datePublished"/ s/: ".*"/: "$(date)"/' codemeta.json
 
 update-citation:
 	$(eval date := $(shell date "+%F"))
-	@sed -i .bak -e "/^date-released/ s/[0-9][0-9-]*/$(date)/" CITATION.cff
-	@sed -i .bak -e "/^version/ s/[0-9].[0-9][0-9]*.[0-9][0-9]*/$(version)/" CITATION.cff
+	@sed -i .bak -e '/^date-released:/ s/".*"/"$(date)"/' CITATION.cff
+	@sed -i .bak -e '/^version:/ s/".*"/"$(version)"/' CITATION.cff
 
 edited := codemeta.json CITATION.cff
 
@@ -146,26 +154,26 @@ commit-updates:
 	git diff-index --quiet HEAD $(edited) || \
 	    git commit -m"chore: update stored version number" $(edited)
 
+release-on-github: | update-all commit-updates
+	$(eval tmp_file := $(shell mktemp /tmp/release-notes-$(name).XXXX))
+	git push -v --all
+	git push -v --tags
+	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
+	@$(info ┃ Write release notes in the file that gets opened in your  ┃)
+	@$(info ┃ editor. Close the editor to complete the release process. ┃)
+	@$(info ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛)
+	sleep 2
+	$(EDITOR) $(tmp_file)
+	gh release create v$(version) -t "Release $(version)" -F $(tmp_file)
+
 # The reason for two separate project profiles is that we have to keep two
 # separate Apps Script projects on Google. The Caltech one is the real
 # development copy, but it's private (because it's inside the Library's
 # G-Suite/Google Workspace), so I keep a second copy in my own (mhucka)
 # Google account so that I can point people to it.
-sync-google:
+sync-projects:
 	clasp -P .clasp.json.caltech  push || exit 1
 	clasp -P .clasp.json.public  push || exit 1
-
-release-on-github: | update-all commit-updates sync-google
-	$(eval tmp_file := $(shell mktemp /tmp/release-notes-$(name).XXXX))
-	git push -v --all
-	git push -v --tags
-	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
-	@$(info ┃ Write release notes in the file that gets opened in your   ┃)
-	@$(info ┃ editor. Close the editor to complete the release process.  ┃)
-	@$(info ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛)
-	sleep 2
-	$(EDITOR) $(tmp_file)
-	gh release create v$(version) -t "Release $(version)" -F $(tmp_file)
 
 print-instructions: vars
 	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
@@ -180,12 +188,6 @@ update-doi: vars
 	git add CITATION.cff
 	git diff-index --quiet HEAD CITATION.cff || \
 	     (git commit -m"chore: update DOI" CITATION.cff && git push -v --all)
-
-
-# make watch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-watch:
-	clasp -P .clasp.json.caltech  push --watch
 
 
 # Cleanup and miscellaneous directives ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
