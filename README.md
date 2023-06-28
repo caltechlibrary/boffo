@@ -6,7 +6,7 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getti
 [![made-with-javascript](https://img.shields.io/badge/Made%20with-JavaScript-yellow.svg?style=flat-square)](https://www.javascript.com)
 [![Boffo](https://img.shields.io/badge/Google%20Marketplace-Boffo-1f425f.svg?style=flat-square&color=orange)](https://workspace.google.com/marketplace/app/boffo/830370816631)
 [![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=purple&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
-[![DOI](https://img.shields.io/badge/dynamic/json.svg?label=DOI&style=flat-square&colorA=gray&colorB=blue&query=$.pids.doi.identifier&uri=https://data.caltech.edu/api/records/dhgzh-arp63)](https://data.caltech.edu/records/dhgzh-arp63)
+[![DOI](https://img.shields.io/badge/dynamic/json.svg?label=DOI&style=flat-square&colorA=gray&colorB=blue&query=$.pids.doi.identifier&uri=https://data.caltech.edu/api/records/1bqcd-qsz43)](https://data.caltech.edu/records/1bqcd-qsz43)
 
 
 ## Table of contents
@@ -28,7 +28,7 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is an add-on for [Google Sheets](h
 
 ## Installation
 
-For Caltech Library staff, Boffo is available from the Google Marketplace for add-ons. For non-Caltech Library staff, you can install the code using one of several methods. 
+If you're Caltech Library staff, Boffo is available to you from the Google Marketplace for add-ons as an "Internal" add-on; if you're not Caltech Library staff, you can still install Boffo using alternate methods, as described in the pages linked below:
 
 * [Installation instructions for Caltech Library staff](https://caltechlibrary.github.io/boffo/installation.html#using-google-marketplace)
 * [Installation instructions for others](https://caltechlibrary.github.io/boffo/installation.html#directly-from-source)
