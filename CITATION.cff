@@ -6,8 +6,9 @@ authors:
     given-names: Michael
     affiliation: "Caltech Library"
     orcid: "https://orid.org/0000-0001-9105-5960"
-version: "1.0.0 (beta 4)"
-date-released: "2023-06-23"
+version: "1.0.0 (beta 5)"
+date-released: "2023-06-28"
+doi: 10.22002/dhgzh-arp63
 abstract: "An apps script for Google Sheets that takes item barcodes and queries a FOLIO instance for information about them."
 repository-code: "https://github.com/caltechlibrary/boffo"
 type: software
