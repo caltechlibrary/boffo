@@ -6,7 +6,7 @@ authors:
     given-names: Michael
     affiliation: "Caltech Library"
     orcid: "https://orid.org/0000-0001-9105-5960"
-version: "1.0.0 (beta 5)"
+version: "1.0.0 (beta 6)"
 date-released: "2023-06-28"
 doi: 10.22002/1bqcd-qsz43
 abstract: "An apps script for Google Sheets that takes item barcodes and queries a FOLIO instance for information about them."
