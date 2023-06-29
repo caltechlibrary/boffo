@@ -116,12 +116,18 @@ function lookUpBarcodes() {
   let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
   let lastLetter = lastColumnLetter();
 
+  // Get these values here instead of doing property lookups in the loop.
+  const props = PropertiesService.getUserProperties();
+  const url   = props.getProperty('boffo_folio_url');
+  const id    = props.getProperty('boffo_folio_tenant_id');
+  const token = props.getProperty('boffo_folio_api_token');
+
   // Get item data for each barcode & write to the sheet.
   log(`getting ${numBarcodes} records`);
   for (let i = 0, bc = barcodes[i]; i < numBarcodes; bc = barcodes[++i]) {
     note(`Looking up ${bc} (item ${i+1} of ${numBarcodes}) …`, -1);
 
-    let data = itemData(bc);
+    let data = itemData(bc, url, id, token);
     let row = i + 2;                  // Offset +1 for header row.
     if (data !== null) {
       let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
@@ -139,16 +145,14 @@ function lookUpBarcodes() {
 /**
  * Returns the FOLIO item data for a given barcode.
  */
-function itemData(barcode) {
-  const props = PropertiesService.getUserProperties();
-  let url = props.getProperty('boffo_folio_url');
-  let endpoint = url + '/inventory/items?query=barcode=' + barcode;
+function itemData(barcode, folio_url, tenant_id, token) {
+  let endpoint = folio_url + '/inventory/items?query=barcode=' + barcode;
   let options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
-      'x-okapi-tenant': props.getProperty('boffo_folio_tenant_id'),
-      'x-okapi-token': props.getProperty('boffo_folio_api_token')
+      'x-okapi-tenant': tenant_id,
+      'x-okapi-token': token
     },
     'muteHttpExceptions': true
   };
