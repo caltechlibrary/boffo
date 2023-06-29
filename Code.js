@@ -54,8 +54,8 @@ function onInstall() {
   onOpen();
 
   // Script properties are used to pre-populate the FOLIO OKAPI URL and
-  // tenant id value fields in the credentials form (folio-form.html). This
-  // makes it possible for all users in our organization to get pre-filled
+  // tenant id field values in the credentials form (credentials-form.html).
+  // This makes it possible for all users in our organization to get pre-filled
   // values for the URL and tenant id without hardwiring values into this
   // code. However, the way that the script properties in a Google Apps
   // Script project work is that anyone in the org can set the script
@@ -265,7 +265,7 @@ function getCredentials() {
  */
 function buildCredentialsDialog(callAfterSuccess = '') {
   log(`building form for Folio creds; callAfterSuccess = ${callAfterSuccess}`);
-  let htmlTemplate = HtmlService.createTemplateFromFile('folio-form');
+  let htmlTemplate = HtmlService.createTemplateFromFile('credentials-form');
   htmlTemplate.callAfterSuccess = callAfterSuccess;
   return htmlTemplate.evaluate().setWidth(475).setHeight(350);
 }
@@ -307,17 +307,17 @@ function withCredentials(funcToCall) {
 }
 
 /**
- * Gets called by the submit() method in folio-form.html. Returns true
+ * Gets called by the submit() method in credentials-form.html. Returns true
  * if successful, false or an exception if not successful.
  *
  * IMPORTANT: this function is called from the context of the client-side
- * Javascript code in folio-form.html. Any exceptions in this function will
- * not be caught by the spreadsheet framework; instead, they'll go to the
- * google.script.run framework's withFailureHandler() handler. This means
- * that calling ui.alert() here works (as long as the code in folio-form.html
- * closes the dialog, which it does in the failure handler) but exceptions
- * will only show up in the logs, without the usual black error banner across
- * the top of the spreadsheet.
+ * Javascript code in credentials-form.html. Any exceptions in this function
+ * will not be caught by the spreadsheet framework; instead, they'll go to
+ * the google.script.run framework's withFailureHandler() handler. This means
+ * that calling ui.alert() here works (as long as the code in
+ * credentials-form.html closes the dialog, which it does in the failure
+ * handler) but exceptions will only show up in the logs, without the usual
+ * black error banner across the top of the spreadsheet.
  */
 function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   // Before saving the given info, we try to create a token. If that fails,
@@ -418,7 +418,7 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
 
 /**
  * Runs a function given its name as a string. This is invoked by the code
- * in folio-form.html and is needed because we can't pass a function object
+ * in credentials-form.html and is needed b/c we can't pass a function object
  * to the form. If we could, the form could invoke that function directly;
  * instead, the form runs google.script.run.callBoffoFunction(name). Note
  * that this function calls JavaScript eval, which is considered bad, but
@@ -584,7 +584,7 @@ function getBoffoMetadata() {
 /**
  * Shows a brief note to the user. This is a separate function instead
  * of simply calling SpreadsheetApp.getActiveSpreadsheet().toast(...)
- * so that we can invoke it from folio-form.html. The default duration
+ * so that we can invoke it from credentials-form.html. The default duration
  * is 2 seconds.
  */
 function note(message, duration = 2) {
