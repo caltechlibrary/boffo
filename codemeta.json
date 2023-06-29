@@ -1,74 +1,74 @@
 {
-    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-    "@type": "SoftwareSourceCode",
-    "name": "Boffo",
-    "description": "Boffo (Barcodes from FOLIO) is a Google Apps script looks up item barcodes in a FOLIO instance.",
-    "version": "1.0.0 (beta 6)",
-    "softwareVersion": "1.0.0 (beta 6)",
-    "datePublished": "2023-06-28",
-    "dateCreated": "2023-06-08",
-    "author": [
-        {
-            "@type": "Person",
-            "givenName": "Michael",
-            "familyName": "Hucka",
-            "affiliation": {
-                "@type": "Organization",
-                "name": "California Institute of Technology Library"
-            },
-            "email": "mhucka@caltech.edu",
-            "@id": "https://orcid.org/0000-0001-9105-5960"
-        }
-    ],
-    "maintainer": [
-        {
-            "@type": "Person",
-            "givenName": "Michael",
-            "familyName": "Hucka",
-            "affiliation": {
-                "@type": "Organization",
-                "name": "California Institute of Technology Library"
-            },
-            "email": "mhucka@caltech.edu",
-            "@id": "https://orcid.org/0000-0001-9105-5960"
-        }
-    ],
-    "funder": { 
-        "@id": "https://ror.org/05dxps055",
-        "@type": "Organization",
-        "name": "California Institute of Technology Library"
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Boffo",
+  "description": "Boffo (Barcodes from FOLIO) is a Google Apps script looks up item barcodes in a FOLIO instance.",
+  "version": "1.0.0 (beta 6)",
+  "softwareVersion": "1.0.0 (beta 6)",
+  "datePublished": "2023-06-28",
+  "dateCreated": "2023-06-08",
+  "author": [
+    {
+    "@type": "Person",
+    "givenName": "Michael",
+    "familyName": "Hucka",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "California Institute of Technology Library"
     },
-    "copyrightHolder": [
-        {
-            "@id": "https://ror.org/05dxps055",
-            "@type": "Organization",
-            "name": "California Institute of Technology"
-        }
-    ],
-    "copyrightYear": 2023,
-    "license": "https://github.com/caltechlibrary/boffo/blob/main/LICENSE",
-    "isAccessibleForFree": true,
-    "url": "http://caltechlibrary.github.io/boffo",
-    "codeRepository": "https://github.com/caltechlibrary/boffo",
-    "readme": "https://github.com/caltechlibrary/boffo/blob/main/README.md",
-    "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
-    "releaseNotes": "https://github.com/caltechlibrary/boffo/blob/main/CHANGES.md",
-    "downloadUrl": "https://github.com/caltechlibrary/boffo/archive/main.zip",
-    "softwareHelp": "http://caltechlibrary.github.io/boffo/usage",
-    "relatedLink": "",
-    "programmingLanguage": {
-        "@type": "ComputerLanguage",
-        "name": "JavaScript",
-        "version": "V8",
-        "url": "https://developers.google.com/apps-script/overview"
+    "email": "mhucka@caltech.edu",
+    "@id": "https://orcid.org/0000-0001-9105-5960"
+  }
+  ],
+  "maintainer": [
+    {
+    "@type": "Person",
+    "givenName": "Michael",
+    "familyName": "Hucka",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "California Institute of Technology Library"
     },
-    "keywords": [
-        "FOLIO",
-        "Google Apps Scripts",
-        "Google Sheets",
-        "automation",
-        "library",
-        "software"
-    ],
-    "developmentStatus": "active"
+    "email": "mhucka@caltech.edu",
+    "@id": "https://orcid.org/0000-0001-9105-5960"
+  }
+  ],
+  "funder": { 
+    "@id": "https://ror.org/05dxps055",
+    "@type": "Organization",
+    "name": "California Institute of Technology Library"
+  },
+  "copyrightHolder": [
+    {
+    "@id": "https://ror.org/05dxps055",
+    "@type": "Organization",
+    "name": "California Institute of Technology"
+  }
+  ],
+  "copyrightYear": 2023,
+  "license": "https://github.com/caltechlibrary/boffo/blob/main/LICENSE",
+  "isAccessibleForFree": true,
+  "url": "http://caltechlibrary.github.io/boffo",
+  "codeRepository": "https://github.com/caltechlibrary/boffo",
+  "readme": "https://github.com/caltechlibrary/boffo/blob/main/README.md",
+  "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
+  "releaseNotes": "https://github.com/caltechlibrary/boffo/blob/main/CHANGES.md",
+  "downloadUrl": "https://github.com/caltechlibrary/boffo/archive/main.zip",
+  "softwareHelp": "http://caltechlibrary.github.io/boffo/usage",
+  "relatedLink": "",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "JavaScript",
+    "version": "V8",
+    "url": "https://developers.google.com/apps-script/overview"
+  },
+  "keywords": [
+    "FOLIO",
+    "Google Apps Scripts",
+    "Google Sheets",
+    "automation",
+    "library",
+    "software"
+  ],
+  "developmentStatus": "active"
 }
