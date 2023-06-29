@@ -48,7 +48,6 @@ function onOpen() {
     .addItem(' ✘ ﻿ ﻿ Clear FOLIO token', 'menuItemClearToken')
     .addItem('ⓘ ﻿ ﻿ About Boffo', 'menuItemShowAbout')
     .addToUi();
-  log('Boffo menu added');
 }
 
 function onInstall() {
@@ -202,7 +201,6 @@ function itemData(barcode) {
   }
 
   let results = JSON.parse(response.getContentText());
-  log(`results for ${barcode}: ` + response.getContentText());
   if (results.totalRecords == 0) {
     log(`Folio did not return data for ${barcode}`);
     return null;
@@ -470,7 +468,6 @@ function haveValidToken() {
  * useful for debugging.
  */
 function menuItemClearToken() {
-  log('deleting stored token');
   PropertiesService.getUserProperties().deleteProperty('boffo_folio_api_token');
   const ui = SpreadsheetApp.getUi();
   ui.alert('Your stored FOLIO token has been deleted. You can use the' +
@@ -487,7 +484,6 @@ function menuItemShowAbout() {
   // script code embedded in the HTML source of about.html.
   htmlTemplate.boffo = getBoffoMetadata();
   const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
-  log('showing about dialog');
   SpreadsheetApp.getUi().showModalDialog(htmlContent, 'About Boffo');
 }
 
@@ -511,11 +507,7 @@ function include(filename) {
  * Returns a user property value.
  */
 function getProp(prop) {
-  if (prop) {
-    return PropertiesService.getUserProperties().getProperty(prop);
-  } else {
-    log(`called getProp() with an empty string`);
-  }
+  return prop ? PropertiesService.getUserProperties().getProperty(prop) : "";
 }
 
 

@@ -71,12 +71,10 @@
      function submitForm(which) { 
        log(`user clicked submit ${which} on form`);
        if (which == "Cancel") {
-         log("returning without saving input");
          delayedClose();
          return;
        }
 
-       log("collecting values and invoking saveFolioInfo");
        const url = document.getElementById("url").value;
        const tenantId = document.getElementById("tenantId").value;
        const user = document.getElementById("user").value;
