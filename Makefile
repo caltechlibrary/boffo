@@ -157,7 +157,7 @@ commit-updates:
 
 release-on-github: | update-all commit-updates
 	$(eval tmp_file := $(shell mktemp /tmp/release-notes-$(name).XXXX))
-	$(eval tag := $(shell tr -d '()' <<< "1.0.0 (beta 5)" | tr ' ' '-'))
+	$(eval tag := $(shell tr -d '()' <<< "$(version)" | tr ' ' '-'))
 	git push -v --all
 	git push -v --tags
 	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
