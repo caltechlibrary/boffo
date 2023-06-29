@@ -54,20 +54,30 @@ function onOpen() {
 function onInstall() {
   onOpen();
 
-  // We use script properties to pre-populate the FOLIO OKAPI URL and tenant
-  // id value fields in the credentials form (folio-form.html). However, the
-  // way that the script properties work is that anyone in the org can change
-  // the value if they type some other value in our credentials form. So, to
-  // avoid that, we copy the values to the user properties and work off that.
+  // Script properties are used to pre-populate the FOLIO OKAPI URL and
+  // tenant id value fields in the credentials form (folio-form.html). This
+  // makes it possible for all users in our organization to get pre-filled
+  // values for the URL and tenant id without hardwiring values into this
+  // code. However, the way that the script properties in a Google Apps
+  // Script project work is that anyone in the org can set the script
+  // property values. If we were to *only* read/write the properties from/to
+  // the script properties, then if any user typed some other values in the
+  // credentials form at any point and this program saved the values back to
+  // the script properties, it would change the pre-filled values that Boffo
+  // users would get after that point. To avoid that, the following code
+  // copies the values from the script properties (if they're set) to the
+  // user properties (if they don't already exist there), and the rest of the
+  // program always works off the user props.
   const scriptProps = PropertiesService.getScriptProperties();
   const userProps = PropertiesService.getUserProperties();
   let url = scriptProps.getProperty('boffo_folio_url');
-  if (url) {
+  if (url && !userProps.getProperty('boffo_folio_url')) {
+    url = stripTrailingSlash(url);
     userProps.setProperty('boffo_folio_url', url);
     log(`set user property boffo_folio_url to ${url}`);
   }
-  let id  = scriptProps.getProperty('boffo_folio_tenant_id');
-  if (id) {
+  let id = scriptProps.getProperty('boffo_folio_tenant_id');
+  if (id && !userProps.getProperty('boffo_folio_tenant_id')) {
     userProps.setProperty('boffo_folio_tenant_id', id);
     log(`set user property boffo_folio_tenant_id to ${id}`);
   }
@@ -314,6 +324,7 @@ function withCredentials(funcToCall) {
 function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   // Before saving the given info, we try to create a token. If that fails,
   // don't save the input because something is probably wrong with it.
+  url = stripTrailingSlash(url);
   let endpoint = url + '/authn/login';
   let payload = JSON.stringify({
       'tenant': tenantId,
@@ -613,6 +624,17 @@ function nonempty(value) {
   return value ? true : false;
 }
 
+/**
+ * Logs the text message to the logger service.
+ */
 function log(text) {
   Logger.log(text);
+}
+
+/**
+ * Returns the given string with any trailing slash character removed
+ * if the string ends in a slash; otherwise it returns the original string.
+ */
+function stripTrailingSlash(url) {
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
