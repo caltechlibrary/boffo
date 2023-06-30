@@ -224,7 +224,7 @@ update-relatedlink: vars
 
 #: Make a new deployment of the Google Apps Script project.
 deploy:
-	clasp deploy --description "Version $(version)"
+	clasp deploy -P .clasp.json.caltech --description "Version $(version)"
 
 
 # Cleanup and miscellaneous directives ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
