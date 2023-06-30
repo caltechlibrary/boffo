@@ -40,7 +40,7 @@ endif
 # The following is based on the approach posted by Jonathan Ben-Avraham to
 # Stack Overflow in 2014 at https://stackoverflow.com/a/25668869
 
-programs_needed = gh git jq jshint sed clasp
+programs_needed = gh git jq jshint htmlhint sed clasp
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
 
@@ -135,6 +135,7 @@ watch:
 #: Run the code through a linter.
 lint:
 	jshint Code.js
+	htmlhint about.html credentials-form.html stylesheet.css.html
 
 
 # make release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
