@@ -6,15 +6,18 @@
 #
 # Run "make" or "make help" to get a list of commands in this makefile.
 #
-# Note: the parts involving DOIs in this makefile make 2 assumptions:
-#  * The research data repository (RDM) is an InvenioRDM system
-#  * The codemeta.json file contains a "relatedLink" pointing to the current
-#    release archived in the RDM server.
+# Note: the parts involving DOIs in this makefile make 3 assumptions:
+#  * There's only one DOI, and this DOI identifies the released version of this
+#    software by referencing a copy in a research data repository (RDM) system
+#  * The RDM server used is based on InvenioRDM (roughly same as Zenodo)
+#  * The codemeta.json file contains a "relatedLink" field whose value contains
+#    the URL of a copy of this software stored in the RDM server.
 # With these assumptions, we can automatically get the latest DOI for a
 # release in RDM (because given any release, RDM can be queried for the latest
-# one) and we don't have to hardwire URLs or identifiers in this makefile.
+# one) and we don't have to hardwire any URLs or identifiers in this makefile.
 # =============================================================================
 
+SHELL=/bin/bash
 .ONESHELL:                              # Run all commands in the same shell.
 .SHELLFLAGS += -e                       # Exit at the first error.
 
@@ -36,31 +39,21 @@ programs_needed = gh git jq jshint sed clasp
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
 
-# Set some basic variables.  These are quick to set; we set additional
-# variables using "vars" but only when the others are needed.
+# Set some basic variables. These are quick to set; we set additional ones
+# using the dependency named "vars" but only when the others are needed.
 
-name	:= $(strip $(shell jq -r .name codemeta.json))
-version	:= $(strip $(shell jq -r .version codemeta.json))
-url	:= $(strip $(shell jq -r .url codemeta.json))
-related	:= $(strip $(shell jq -r .relatedLink codemeta.json))
-author	:= $(strip $(shell jq -r '.author[] | .givenName + " " + .familyName' codemeta.json))
-email	:= $(strip $(shell jq -r '.author[].email' codemeta.json))
-license	:= $(strip $(shell jq -r .license codemeta.json))
-branch	:= $(shell git rev-parse --abbrev-ref HEAD)
-
-# The next ones depend on the convention used (at the Caltech Library) that the
-# "relatedLink" field in codemeta.json points to the archived release.
-
-rdm_current_id	 := $(shell sed -r 's|.*/(.*)$$|\1|' <<< $(related))
-rdm_host_url	 := $(shell cut -d'/' -f 1-3 <<< $(related))
-rdm_versions_url := $(rdm_host_url)/api/records/$(rdm_current_id)/versions
-
+name	 := $(strip $(shell jq -r .name codemeta.json))
+version	 := $(strip $(shell jq -r .version codemeta.json))
+repo	 := $(shell git ls-remote --get-url | sed -e 's/.*:\(.*\).git/\1/')
+repo_url := https://github.com/$(repo)
+branch	 := $(shell git rev-parse --abbrev-ref HEAD)
+today	 := $(shell date "+%F")
 
 # Print help if no command is given ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # The help scheme works by looking for lines beginning with "#:" above make
-# targets in this file. Originally based on code posted to Stack Overflow
-# by Richard Kiefer at https://stackoverflow.com/a/59087509/743730
+# targets in this file. Originally based on code posted to Stack Overflow on
+# 2019-11-28 by Richard Kiefer at https://stackoverflow.com/a/59087509/743730
 
 #: Print a summary of available commands.
 help:
@@ -73,47 +66,56 @@ help:
 	| column -t -s '###'
 
 #: Summarize how to do a release using this makefile.
-instructions: vars
-	@echo "$$instructions_text"
+instructions:;
+	$(info $(instructions_text))
 
-define instructions_text
-Steps for doing a release:
-1. Run $(color)make lint$(reset) and fix problems.
-2. Update the version number in the file codemeta.json.
-3. Write release notes in the file CHANGES.md.
-4. Run $(color)make release$(reset); it will work and eventually open a file in your editor
-   for GitHub release notes. Copying the text from CHANGES.md is okay. Save it.
-5. Check that everything looks okay with the GitHub release
-   at https://github.com/$(repo)/releases
-6. Wait for IGA to finish running its GitHub action
-   at https://github.com/$(repo)/actions
-7. Run $(color)make update-doi$(reset) and check the results.
+define instructions_text =
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Steps for doing a release                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+ 1. Run $(color)make lint$(reset) and fix any problems.
+ 2. Update the version number in the file codemeta.json.
+ 3. Check $(color)make report$(reset) (but ignore current id & DOI).
+ 4. Write notes in the file CHANGES.md and commit the file.
+ 5. Run $(color)make release$(reset); after some steps, it will open a file
+    in your editor to write GitHub release notes. Copy the notes
+    from CHANGES.md. Save the opened file to finish the process.
+ 6. Check that everything looks okay with the GitHub release at
+    $(link)$(repo_url)/releases$(reset)
+ 7. Wait for IGA to finish running its GitHub action at
+    $(link)$(repo_url)/actions$(reset)
+ 8. Run $(color)make post-release$(reset) and check the results.
+ 9. Run $(color)make deploy$(reset) and check the results.
+10. Update the Google Marketplace version.
 endef
-export instructions_text
+
 
 # Gather additional values we sometimes need ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # These variables take longer to compute, and for some actions like "make help"
 # they are unnecessary and annoying to wait for.
-.SILENT: vars
-vars:
-	$(info $(dim)Gathering data – this takes a few moments …$(reset))
-	$(eval repo := $(strip $(shell gh repo view | head -1 | cut -f2 -d':')))
-	$(eval latest_doi := $(shell curl -s $(rdm_versions_url) | jq -r .hits.hits[0].pids.doi.identifier))
-	$(info $(dim)Gathering data – this takes a few moments … Done.$(reset))
+vars:;
+	$(eval url     := $(strip $(shell jq -r .url codemeta.json)))
+	$(eval license := $(strip $(shell jq -r .license codemeta.json)))
+	$(eval desc    := $(strip $(shell jq -r .description codemeta.json)))
+	$(eval related := \
+	  $(strip $(shell jq -r '.relatedLink | if type == "array" then .[0] else . end' codemeta.json)))
+	$(eval rdm_url	  := $(shell cut -d'/' -f 1-3 <<< $(related)))
+	$(eval current_id := $(shell sed -r 's|.*/(.*)$$|\1|' <<< $(related)))
+	$(eval vers_url	  := $(rdm_url)/api/records/$(current_id)/versions)
+	$(eval latest_doi := $(shell curl -s $(vers_url) | jq -r .hits.hits[0].pids.doi.identifier))
 
 #: Print variables set in this Makefile from various sources.
 report: vars
-	@$(info $(color)name$(reset)           = $(name))
-	@$(info $(color)version$(reset)        = $(version))
-	@$(info $(color)url$(reset)            = $(url))
-	@$(info $(color)author$(reset)         = $(author))
-	@$(info $(color)email$(reset)          = $(email))
-	@$(info $(color)license$(reset)        = $(license))
-	@$(info $(color)branch$(reset)         = $(branch))
-	@$(info $(color)repo$(reset)           = $(repo))
-	@$(info $(color)rdm_current_id$(reset) = $(rdm_current_id))
-	@$(info $(color)latest_doi$(reset)     = $(latest_doi))
+	@$(info $(color)name$(reset)	   = $(name))
+	@$(info $(color)version$(reset)	   = $(version))
+	@$(info $(color)repo$(reset)	   = $(repo))
+	@$(info $(color)repo url$(reset)   = $(repo_url))
+	@$(info $(color)main url$(reset)   = $(url))
+	@$(info $(color)license$(reset)	   = $(license))
+	@$(info $(color)branch$(reset)	   = $(branch))
+	@$(info $(color)current_id$(reset) = $(current_id))
+	@$(info $(color)latest_doi$(reset) = $(latest_doi))
 
 
 # make watch ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,14 +151,17 @@ update-all: update-meta update-citation
 # Note that this doesn't replace "version" in codemeta.json, because that's the
 # variable from which this makefile gets its version number in the first place.
 update-meta:
-	$(eval date := $(shell date "+%F"))
-	@sed -i .bak -e '/"softwareVersion"/ s/: ".*"/: "$(version)"/' codemeta.json
-	@sed -i .bak -e '/"datePublished"/ s/: ".*"/: "$(date)"/' codemeta.json
+	@sed -i .bak -e '/"softwareVersion"/ s|: ".*"|: "$(version)"|' codemeta.json
+	@sed -i .bak -e '/"datePublished"/ s|: ".*"|: "$(today)"|' codemeta.json
 
-update-citation:
-	$(eval date := $(shell date "+%F"))
-	@sed -i .bak -e '/^date-released:/ s/".*"/"$(date)"/' CITATION.cff
-	@sed -i .bak -e '/^version:/ s/".*"/"$(version)"/' CITATION.cff
+update-citation: vars
+	@sed -i .bak -e '/^url:/ s|".*"|"$(url)"|' CITATION.cff
+	@sed -i .bak -e '/^title:/ s|".*"|"$(name)"|' CITATION.cff
+	@sed -i .bak -e '/^version:/ s|".*"|"$(version)"|' CITATION.cff
+	@sed -i .bak -e '/^abstract:/ s|".*"|"$(desc)"|' CITATION.cff
+	@sed -i .bak -e '/^license-url:/ s|".*"|"$(license)"|' CITATION.cff
+	@sed -i .bak -e '/^date-released:/ s|".*"|"$(today)"|' CITATION.cff
+	@sed -i .bak -e '/^repository-code:/ s|".*"|"$(repo_url)"|' CITATION.cff
 
 edited := codemeta.json CITATION.cff
 
@@ -167,7 +172,7 @@ commit-updates:
 
 release-on-github: | update-all commit-updates
 	$(eval tmp_file := $(shell mktemp /tmp/release-notes-$(name).XXXX))
-	$(eval tag := $(shell tr -d '()' <<< "$(version)" | tr ' ' '-'))
+	$(eval tag := "v$(shell tr -d '()' <<< "$(version)" | tr ' ' '-')")
 	git push -v --all
 	git push -v --tags
 	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
@@ -188,21 +193,38 @@ sync-projects:
 	clasp -P .clasp.json.public  push || exit 1
 
 print-next-steps: vars
-	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
-	@$(info ┃ Next steps:                                                ┃)
-	@$(info ┃ 1. Check https://github.com/$(repo)/releases )
-	@$(info ┃ 2. Wait for https://github.com/$(repo)/actions to finish   ┃)
-	@$(info ┃ 3. Run "make update-doi" and check the results             ┃)
-	@$(info ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛)
+	@$(info ┏━━━━━━━━━━━━┓)
+	@$(info ┃ Next steps ┃)
+	@$(info ┗━━━━━━━━━━━━┛)
+	@$(info  1. Check $(repo_url)/releases )
+	@$(info  2. Wait for $(repo_url)/actions )
+	@$(info  3. Run $(color)make post-release$(reset) and check the results)
+	@$(info  4. Run $(color)make deploy$(reset) and check the results)
+	@$(info  5. Update the Google Marketplace version.)
 
-#: Update the stored DOI in CITATION.cff & README.md.
+#: Update values in CITATION.cff, codemeta.json, and README.md.
+post-release: update-doi update-relatedlink sync-projects
+
 update-doi: vars
 	$(eval doi_tail := $(shell cut -f'2' -d'/' <<< $(latest_doi)))
 	sed -i .bak -e '/doi:/ s|doi: .*|doi: $(latest_doi)|' CITATION.cff
 	sed -i .bak -e 's|records/[a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9]-[a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9]|records/$(doi_tail)|g' README.md
 	git add CITATION.cff README.md
 	git diff-index --quiet HEAD CITATION.cff README.md || \
-	  (git commit -m"chore: update DOI" CITATION.cff README.md && git push -v --all)
+	  (git commit -m"chore: update DOI" CITATION.cff README.md && \
+	   git push -v --all)
+
+update-relatedlink: vars
+	$(eval new_id   := $(shell cut -f'2' -d'/' <<< $(latest_doi)))
+	$(eval new_link := $(rdm_url)/records/$(new_id))
+	@sed -i .bak -e '/"relatedLink"/ s|: ".*"|: "$(new_link)"|' codemeta.json
+	git add codemeta.json
+	git diff-index --quiet HEAD codemeta.json || \
+	  (git commit -m"chore: update links" codemeta.json && git push -v --all)
+
+#: Make a new deployment of the Google Apps Script project.
+deploy:
+	clasp deploy --description "Version $(version)"
 
 
 # Cleanup and miscellaneous directives ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -220,8 +242,8 @@ joke:
 # Color codes used in messages.
 color := $(shell tput bold; tput setaf 6)
 dim   := $(shell tput setaf 66)
+link  := $(shell tput setaf 111)
 reset := $(shell tput sgr0)
-
 
 .PHONY: help instructions vars report release test-branch tests update-all \
 	update-init update-meta update-citation update-example commit-updates \
@@ -230,4 +252,4 @@ reset := $(shell tput sgr0)
 	clean-release clean-other joke
 
 .SILENT: clean clean-dist clean-build clean-release clean-other really-clean \
-	really-clean-dist really-clean-build completely-clean
+	really-clean-dist really-clean-build completely-clean instructions vars
