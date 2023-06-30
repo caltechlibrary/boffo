@@ -8,7 +8,7 @@ authors:
     orcid: "https://orid.org/0000-0001-9105-5960"
 version: "1.0.0"
 date-released: "2023-06-29"
-doi: 10.22002/3x3ne-tgr50
+doi: 10.22002/v5b68-zd046
 abstract: "An apps script for Google Sheets that takes item barcodes and queries a FOLIO instance for information about them."
 repository-code: "https://github.com/caltechlibrary/boffo"
 type: software
