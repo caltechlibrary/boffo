@@ -21,7 +21,6 @@ const fields = [
   ['Effective location'       , (item) => item.effectiveLocation.name],
   ['Effective call number'    , (item) => item.effectiveCallNumberComponents.callNumber],
   ['Enumeration'              , (item) => item.enumeration],
-  ['Effective shelving order' , (item) => item.effectiveShelvingOrder],
   ['Item UUID'                , (item) => item.id],
 ];
 
