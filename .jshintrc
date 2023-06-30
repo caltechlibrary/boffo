@@ -1,4 +1,4 @@
-// ================================================================= -*- js -*-
+// -*- js -*-
 // @file    .jshintrc
 // @brief   Configuration file for jshint (https://jshint.com)
 // @date    2023-06-27
@@ -7,7 +7,6 @@
 //
 // Example configuration options can be found in the "examples" directory at
 // https://github.com/jshint/jshint/tree/main/examples
-// =============================================================================
 
 {
       "esversion": 6,

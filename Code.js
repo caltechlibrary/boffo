@@ -1,10 +1,8 @@
-// ============================================================================
 // @file    Code.js (shown as Code.gs in the Google Apps Script editor)
 // @brief   Main file for Boffo
 // @created 2023-06-08
 // @license Please see the file named LICENSE in the project directory
 // @website https://github.com/caltechlibrary/boffo
-// ============================================================================
 
 
 // Global constants.

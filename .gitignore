@@ -1,4 +1,3 @@
-# =========================================================== -*- gitignore -*-
 # @file    .gitignore
 # @brief   Files and patterns for files and subdirs that git should ignore
 # @date    2023-06-12
@@ -18,7 +17,6 @@
 #
 # A useful starting point for global .gitignore file contents can be found at
 # https://github.com/github/gitignore/tree/main/Global (as of 2022-07-14).
-# =============================================================================
 
 # Ignore backup files created by our Makefile
 # .............................................................................
