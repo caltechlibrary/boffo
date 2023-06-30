@@ -24,7 +24,7 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getti
 
 ## Introduction
 
-Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is an add-on for [Google Sheets](https://www.google.com/sheets/about/). It lets you select item barcodes in a spreadsheet and retrieve information about the [item records](https://caltechlibrary.github.io/boffo/glossary) from a [FOLIO](https://folio.org) server.
+Boffo (a loose acronym of _**B**arc**o**des **f**rom **FO**LIO_, and pronounced like [the noun](https://en.wiktionary.org/wiki/boffo)) is an add-on for [Google Sheets](https://www.google.com/sheets/about/). It lets you select item barcodes in a spreadsheet and retrieve information about the [item records](https://caltechlibrary.github.io/boffo/glossary) from a [FOLIO](https://folio.org) server.
 
 ## Installation
 
