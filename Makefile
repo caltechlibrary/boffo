@@ -1,21 +1,26 @@
-# =============================================================================
 # @file    Makefile
 # @date    2023-06-12
 # @license Please see the file named LICENSE in the project directory
 # @website https://github.com/caltechlibrary/boffo
 #
-# Run "make" or "make help" to get a list of commands in this makefile.
-#
-# Note: the parts involving DOIs in this makefile make 3 assumptions:
-#  * There's only one DOI, and this DOI identifies the released version of this
-#    software by referencing a copy in a research data repository (RDM) system
-#  * The RDM server used is based on InvenioRDM (roughly same as Zenodo)
-#  * The codemeta.json file contains a "relatedLink" field whose value contains
-#    the URL of a copy of this software stored in the RDM server.
-# With these assumptions, we can automatically get the latest DOI for a
-# release in RDM (because given any release, RDM can be queried for the latest
-# one) and we don't have to hardwire any URLs or identifiers in this makefile.
-# =============================================================================
+# ╭───────────────────────────── Important notes ─────────────────────────────╮
+# │ Run "make" or "make help" to get a list of commands in this makefile.     │
+# │                                                                           │
+# │ The codemeta.json file is considered the master source for version and    │
+# │ other info. Information is pulled out of codemeta.json to update other    │
+# │ files like CITATION.cff and the README. Maintainers should update         │
+# │ codemeta.json and not edit other files to update version numbers & URLs.  │
+# │                                                                           │
+# │ The parts involving the DOI in this makefile make 3 assumptions:          │
+# │  * The DOI identifies the released version of this software by            │
+# │    referencing a copy in a research data repository (RDM) system          │
+# │  * The RDM server used is based on InvenioRDM (roughly same as Zenodo)    │
+# │  * The codemeta.json file contains a "relatedLink" field whose value      │
+# │    contains the URL of a copy of this software stored in the RDM server.  │
+# │ With these assumptions, we can automatically get the latest DOI for a     │
+# │ release in RDM (because given any release, RDM can be queried for the     │
+# │ latest one) and we don't have to hardwire URLs or id's in this makefile.  │
+# ╰───────────────────────────────────────────────────────────────────────────╯
 
 SHELL=/bin/bash
 .ONESHELL:                              # Run all commands in the same shell.
