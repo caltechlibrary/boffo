@@ -50,10 +50,10 @@
   "url": "http://caltechlibrary.github.io/boffo",
   "codeRepository": "https://github.com/caltechlibrary/boffo",
   "readme": "https://github.com/caltechlibrary/boffo/blob/main/README.md",
-  "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
   "releaseNotes": "https://github.com/caltechlibrary/boffo/blob/main/CHANGES.md",
-  "downloadUrl": "https://github.com/caltechlibrary/boffo/archive/main.zip",
-  "softwareHelp": "http://caltechlibrary.github.io/boffo/usage",
+  "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
+  "downloadUrl": "https://github.com/caltechlibrary/boffo/releases",
+  "softwareHelp": "http://caltechlibrary.github.io/boffo",
   "relatedLink": "https://data.caltech.edu/records/3x3ne-tgr50",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
