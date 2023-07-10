@@ -141,7 +141,12 @@ lint:
 # make release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #: Make release on GitHub & update copies in Google GAS projects.
-release: | confirm-release release-on-github sync-projects print-next-steps
+release: | test-branch confirm-release release-on-github sync-projects print-next-steps
+
+test-branch:;
+ifneq ($(branch),main)
+	$(error Current git branch != main. Merge changes into main first!)
+endif
 
 confirm-release:
 	@read -p "Have you updated the version number? [y/N] " ans && : $${ans:=N} ;\
