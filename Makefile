@@ -219,7 +219,7 @@ post-release: update-doi update-relatedlink sync-projects
 update-doi: vars
 	$(eval doi_tail := $(shell cut -f'2' -d'/' <<< $(latest_doi)))
 	sed -i .bak -e '/doi:/ s|doi: .*|doi: $(latest_doi)|' CITATION.cff
-	sed -i .bak -e 's|records/[a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9]-[a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9]|records/$(doi_tail)|g' README.md
+	sed -i .bak -E -e 's|records/[[:alnum:]]{5}-[[:alnum:]]{5}|records/$(doi_tail)|g' README.md
 	git add CITATION.cff README.md
 	git diff-index --quiet HEAD CITATION.cff README.md || \
 	  (git commit -m"chore: update DOI" CITATION.cff README.md && \
