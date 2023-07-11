@@ -1,3 +1,18 @@
 {
-  "spec-char-escape": false
+  "attr-lowercase": true,
+  "attr-no-duplication": true,
+  "attr-unsafe-chars": true,
+  "attr-value-double-quotes": true,
+  "id-class-ad-disabled": true,
+  "id-unique": true,
+  "spec-char-escape": false,
+  "src-not-empty": true,
+  "tag-pair": true,
+  "tag-self-close": true,
+  "tagname-lowercase": true,
+  "title-require": true,
+  "csslint": {
+    "display-property-grouping": true,
+    "known-properties": true
+  }
 }
