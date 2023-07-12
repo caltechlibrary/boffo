@@ -632,6 +632,7 @@ function note(message, duration = 2) {
     // simply ignoring our inability to write a toast message.
     log(`Got exception ("${error}") trying to display a note to user. The` +
         ` note will not be shown. It would have been: "${message}"`);
+  }
 }
 
 /**
