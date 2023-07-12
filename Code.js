@@ -128,7 +128,7 @@ function lookUpBarcodes() {
   barcodeBatches.forEach((batch, index) => {
     if (numBarcodes > 10 && batch.length >= 10) {
       note(`Getting ${nth(index + 1)} batch of ${batch.length} records` +
-           ` out of a total of ${numBarcodes} …`, 10);
+           ` out of a total of ${numBarcodes} …`, batch.length);
     } else {
       note(`Getting ${batch.length} records …`);
     }
