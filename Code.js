@@ -95,9 +95,10 @@ function menuItemLookUpBarcodes() {
  * FOLIO, and creates a new sheet with columns containing item field values.
  */
 function lookUpBarcodes() {
-  // Get array of values from spreadsheet. This will be a list of strings.
+  // Get array of values from spreadsheet. The list we get back is a list of
+  // single-item lists, so we also flatten it.
   let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
-  let barcodes = selection.getActiveRange().getDisplayValues();
+  let barcodes = selection.getActiveRange().getDisplayValues().flat();
 
   // Filter out strings that don't look like barcodes.
   barcodes = barcodes.filter(x => barcodePattern.test(x));
@@ -108,6 +109,7 @@ function lookUpBarcodes() {
     ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
     return;
   }
+  log(`the user's selection contains ${numBarcodes} barcodes`);
 
   // Create a new sheet where results will be written.
   let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
@@ -119,99 +121,119 @@ function lookUpBarcodes() {
   const id    = props.getProperty('boffo_folio_tenant_id');
   const token = props.getProperty('boffo_folio_api_token');
 
-  // Get item data for each barcode & write to the sheet.
-  log(`getting ${numBarcodes} records`);
-  for (let i = 0, bc = barcodes[i]; i < numBarcodes; bc = barcodes[++i]) {
-    note(`Looking up ${bc} (item ${i+1} of ${numBarcodes}) …`, -1);
-
-    let data = itemData(bc, url, id, token);
-    let row = i + 2;                  // Offset +1 for header row.
-    if (data !== null) {
-      let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
-      cells.setValues([fields.map((field) => field[1](data))]);
+  // Get batches of item data for the barcodes & write to the sheet.
+  const batchSize = barcodes.length > 200 ? 100 : 10;
+  const barcodeBatches = batchedList(barcodes, batchSize);
+  let row = 1;                          // Offset +1 for header row.
+  barcodeBatches.forEach((batch, index) => {
+    if (numBarcodes > 10 && batch.length >= 10) {
+      note(`Getting ${nth(index + 1)} batch of ${batch.length} records` +
+           ` out of a total of ${numBarcodes} …`, 10);
     } else {
-      let cell = resultsSheet.getRange(`A${row}`);
-      cell.setValues([bc]);
-      cell.setFontColor('red');
+      note(`Getting ${batch.length} records …`);
     }
-  }
-  log('done writing data to sheet');
+    let records = itemRecords(batch, url, id, token);
+    records.forEach(rec => {
+      ++row;
+      if (Object.hasOwn(rec, 'id')) {
+        let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
+        cells.setValues([fields.map(field => field[1](rec))]);
+      } else {
+        let cell = resultsSheet.getRange(`A${row}`);
+        cell.setValues([[rec.barcode]]);
+        cell.setFontColor('red');
+      }
+    });
+  });
   note('Done! ✨', 1);
 }
 
 /**
- * Returns the FOLIO item data for a given barcode.
+ * Returns the FOLIO item data for a list of barcodes.
  */
-function itemData(barcode, folio_url, tenant_id, token) {
-  let endpoint = folio_url + '/inventory/items?query=barcode=' + barcode;
-  let options = {
-    'method': 'get',
-    'contentType': 'application/json',
-    'headers': {
-      'x-okapi-tenant': tenant_id,
-      'x-okapi-token': token
-    },
-    'muteHttpExceptions': true
-  };
-  
-  log(`doing HTTP post on ${endpoint}`);
-  let response = UrlFetchApp.fetch(endpoint, options);
-  let httpCode = response.getResponseCode();
-  log(`got response from Folio with HTTP code ${httpCode}`);
-  // If an error occurred, report it now and stop.
-  if (httpCode >= 300) {
-    log('alerting user to the error and stopping.');
-    note('Stopping due to error.', 0.1);
-    switch (httpCode) {
-      case 400:
-      case 401:
-      case 403:
-        quit('Stopped due to an error',
-             'A FOLIO authentication error occurred. This can be' +
-             ' due to an invalid FOLIO URL, tenant ID, or token,' +
-             ' or if the user account lacks FOLIO permissions to' +
-             ' perform the action requested. To fix this, try to' +
-             ' reset the FOLIO credentials (using the Boffo menu' +
-             ' option for that).  If this error persists, please' +
-             ' contact your FOLIO administrator for assistance.');
-        break;
-      case 404:
-        quit('Stopped due to an error',
-             'The API call made by Boffo does not seem to exist at' +
-             ' the address Boffo attempted to use. This may be due' +
-             ' to a temporary network glitch. Please wait a moment' +
-             ' then retry the same operation again. If the problem' +
-             ' persists, please report this to the developers.');
-        break;
-      case 409:
-      case 500:
-      case 501:
-        quit('Stopped due to an error',
-             'FOLIO turned an internal server error. This may be due' +
-             ' to a temporary problem with FOLIO itself. Please wait' +
-             ' a moment, then retry the same operation. If the error' +
-             ' persists, please report it to the developers.' +
-             ` (Error code ${httpCode}.)`);
-        break;
-      default:
-        quit('Stopped due to an error',
-             `An error occurred communicating with FOLIO` +
-             ` (code ${httpCode}). Please report this to` +
-             ' the developers.');
-    }
+function itemRecords(barcodeList, folio_url, tenant_id, token) {
+  let requests = barcodeList.map(barcode => {
+    return {
+      'url': `${folio_url}/inventory/items?query=barcode=${barcode}`,
+      'method': 'get',
+      'contentType': 'application/json',
+      'headers': {
+        'x-okapi-tenant': tenant_id,
+        'x-okapi-token': token
+      },
+      'muteHttpExceptions': true
+    };
+  });
+
+  log(`doing HTTP post on ${folio_url} for ${barcodeList}`);
+  let responses = UrlFetchApp.fetchAll(requests);
+  if (!nonempty(responses)) {
+    log('fetchAll did not return any results');
+    quit('Stopped due to an error',
+         'The network call to FOLIO failed to return any results.' +
+         ' This should not happen and probably indicates an error' +
+         ' in this program. Try the operation again in case it is' +
+         ' due to a transient network error; if you get this same' +
+         ' error again, please report this to the developers.');
   }
 
-  let results = JSON.parse(response.getContentText());
-  if (results.totalRecords == 0) {
-    log(`Folio did not return data for ${barcode}`);
-    return null;
-  } else if (results.totalRecords > 1) {
-    // FIXME put something in the output
-    log(`Folio returned more than one item for ${barcode}`);
-    return null;
-  } else {
-    return results.items[0];
-  }
+  let records = [];
+  responses.forEach((response, index) => {
+    let barcode = barcodeList[index];
+
+    // If there was an error, stop short and exit immediately.
+    let httpCode = response.getResponseCode();
+    log(`got HTTP response code ${httpCode} for ${barcode}`);
+    if (httpCode >= 300) {
+      note('Stopping due to error.', 0.1);
+      switch (httpCode) {
+        case 400:
+        case 401:
+        case 403:
+          quit('Stopped due to a permissions error',
+               'A FOLIO authentication error occurred. This can be' +
+               ' due to an invalid FOLIO URL, tenant ID, or token,' +
+               ' or if the user account lacks FOLIO permissions to' +
+               ' perform the action requested. To fix this, try to' +
+               ' reset the FOLIO credentials (using the Boffo menu' +
+               ' option for that).  If this error persists, please' +
+               ' contact your FOLIO administrator for assistance.');
+          break;
+        case 404:
+          quit('Stopped due to an error',
+               'The API call made by Boffo does not seem to exist at' +
+               ' the address Boffo attempted to use. This may be due' +
+               ' to a temporary network glitch. Please wait a moment' +
+               ' then retry the same operation again. If the problem' +
+               ' persists, please report this to the developers.');
+          break;
+        case 409:
+        case 500:
+        case 501:
+          quit('Stopped due to a server error',
+               'FOLIO turned an internal server error. This may be due' +
+               ' to a temporary problem with FOLIO itself. Please wait' +
+               ' a moment, then retry the same operation. If the error' +
+               ' persists, please report it to the developers.' +
+               ` (Error code ${httpCode}.)`);
+          break;
+        default:
+          quit('Stopped due to an error',
+               `An error occurred communicating with FOLIO` +
+               ` (code ${httpCode}). Please report this to` +
+               ' the developers.');
+      }
+    };
+
+    let folioResult = JSON.parse(response.getContentText());
+    if (folioResult.totalRecords == 0) {
+      log(`Folio did not return data for ${barcode}`);
+      records.push({'barcode': barcode});
+    } else {
+      records.push(folioResult.items[0]);
+    }
+  });
+  return records;
 }
 
 /**
@@ -235,6 +257,18 @@ function createResultsSheet(headings) {
   headerRow.setBackground('#999999');
 
   return sheet;
+}
+
+function batchedList(input, sliceSize) {
+  let output = [];
+  let sliceStart = 0;
+  let sliceEnd = Math.min(sliceSize, input.length);
+  while (sliceStart < input.length) {
+    output.push(input.slice(sliceStart, sliceEnd));
+    sliceStart = sliceEnd;
+    sliceEnd = sliceStart + Math.min(input.length - sliceStart, sliceSize);
+  }
+  return output;
 }
 
 
@@ -589,7 +623,15 @@ function getBoffoMetadata() {
  * is 2 seconds.
  */
 function note(message, duration = 2) {
-  SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Boffo', duration);
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Boffo', duration);
+    log('Displayed note to user: ' + message);
+  } catch ({name, error}) {
+    // I've seen "Exception: Service unavailable: Spreadsheets" errors on
+    // occasion. In the present context, it's not worth doing more than
+    // simply ignoring our inability to write a toast message.
+    log(`Got exception ("${error}") trying to display a note to user. The` +
+        ` note will not be shown. It would have been: "${message}"`);
 }
 
 /**
@@ -611,17 +653,23 @@ function quit(why, details = '', showAlert = false) {
 }
 
 /**
- * Returns true if the given value is not empty, null, or undefined.
+ * Logs the text message.
  */
-function nonempty(value) {
-  return value ? true : false;
+function log(text) {
+  console.log(text);
 }
 
 /**
- * Logs the text message to the logger service.
+ * Returns true if the given value is not empty, null, or undefined.
+ * This works on arrays, which in JavaScript have the (IMHO) confusing
+ * behvior that "x ? true : false" returns true for an empty array.
  */
-function log(text) {
-  Logger.log(text);
+function nonempty(value) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  } else {
+    return value ? true : false;
+  }
 }
 
 /**
@@ -630,4 +678,14 @@ function log(text) {
  */
 function stripTrailingSlash(url) {
   return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+/**
+ * Returns a string consisting of the given number with an ordinal indicator
+ * ("st", "nd", "rd", or "th") appended. This code was originally based in
+ * part on a posting to Stack Overflow by user "Tomas Langkaas" on 2016-09-13
+ * at https://stackoverflow.com/a/39466341/743730 
+ */
+function nth(n) {
+  return `${n}` + (["st", "nd", "rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
 }

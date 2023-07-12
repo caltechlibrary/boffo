@@ -1,5 +1,15 @@
 # Change log for Boffo
 
+## Version 1.2.0
+
+This version speeds up data fetches from the FOLIO server. Boffo should now be roughly twice as fast, which means that compared to the previous version, it can now look up twice as many barcodes before it hits the institutional time limit on Apps Script functions (which is 1800 seconds for Caltech Library users). In testing, the maximum number of records is around 1100.
+
+Other changes in this version:
+* `make lint` now lints the HTML files too.
+* Minor HTML file errors have been corrected.
+* The Makefile has had a few more small additions and improvements.
+
+
 ## Version 1.1.0
 
 User-visible changes in this version:
