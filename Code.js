@@ -223,7 +223,7 @@ function itemRecords(barcodeList, folio_url, tenant_id, token) {
                ` (code ${httpCode}). Please report this to` +
                ' the developers.');
       }
-    };
+    }
 
     let folioResult = JSON.parse(response.getContentText());
     if (folioResult.totalRecords == 0) {
