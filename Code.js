@@ -112,7 +112,7 @@ function lookUpBarcodes() {
   log(`the user's selection contains ${numBarcodes} barcodes`);
 
   // Create a new sheet where results will be written.
-  let resultsSheet = createResultsSheet(fields.map((field) => field[0]));
+  let resultsSheet = createResultsSheet(numBarcodes, fields.map((field) => field[0]));
   let lastLetter = lastColumnLetter();
 
   // Get these values here instead of doing property lookups in the loop.
@@ -243,13 +243,12 @@ function itemRecords(barcodes, folio_url, tenant_id, token) {
 /**
  * Creates the results sheet and returns it.
  */
-function createResultsSheet(headings) {
+function createResultsSheet(numRows, headings) {
   let sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(uniqueSheetName());
   sheet.setColumnWidths(1, numColumns(), 150);
+  sheet.setFrozenRows(1);
 
-  // FIXME 1000 is arbitrary, picked because new Google sheets have 1000 rows,
-  // but it's conceivable someone will create a sheet with more.
-  let cells = sheet.getRange('A1:A1000');
+  let cells = sheet.getRange(`A1:A${numRows}`);
   cells.setHorizontalAlignment('left');
 
   let lastLetter = lastColumnLetter();
