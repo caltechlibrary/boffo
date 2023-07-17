@@ -129,28 +129,31 @@ function lookUpBarcodes() {
   // of 2048 leads to an estimate of ~65 barcodes max per query. Using the
   // number 50 is very conservative and also convenient for mental math.
   const barcodeBatches = batchedList(barcodes, 50);
-  let row = 1;                          // Offset +1 for header row.
+  let row = 2;                          // Offset +1 for header row.
+  let total = 0;
   barcodeBatches.forEach((batch, index) => {
-    if (numBarcodes > 10 && batch.length >= 10) {
-      note(`Getting ${nth(index + 1)} batch of ${batch.length} records` +
-           ` out of a total of ${numBarcodes} …`);
-    } else {
-      note(`Getting ${batch.length} records …`);
-    }
+    log(`working on rows starting with ${row}`);
     let records = itemRecords(batch, url, id, token);
-    records.forEach(rec => {
-      ++row;
-      if (Object.hasOwn(rec, 'id')) {
-        let cells = resultsSheet.getRange(`A${row}:${lastLetter}${row}`);
-        cells.setValues([fields.map(field => field[1](rec))]);
+    let cellValues = records.map(rec => {
+      // If item was found, record will have an 'id' field.
+      if ('id' in rec) {
+        total++;
+        return fields.map(field => field[1](rec));
       } else {
-        let cell = resultsSheet.getRange(`A${row}`);
-        cell.setValues([[rec.barcode]]);
-        cell.setFontColor('red');
+        // Not found => create a row with only the barcode in the first cell.
+        return [rec.barcode, ...new Array(fields.length - 1).fill('')];
       }
     });
+    let cells = resultsSheet.getRange(row, 1, records.length, fields.length);
+    cells.setValues(cellValues);
+    row += records.length;
   });
-  note('Done! ✨', 1);
+
+  log(`got total of ${total} records for ${numBarcodes} barcodes selected`);
+  // If few barcodes were fetched, it happens too fast to bother printing this.
+  if (numBarcodes > 100) {
+    note(`Finished looking up ${numBarcodes} barcodes ✨ `, 1);
+  }
 }
 
 /**
