@@ -121,14 +121,19 @@ function lookUpBarcodes() {
   const id    = props.getProperty('boffo_folio_tenant_id');
   const token = props.getProperty('boffo_folio_api_token');
 
-  // Get batches of item data for the barcodes & write to the sheet.
-  const batchSize = barcodes.length > 200 ? 100 : 10;
-  const barcodeBatches = batchedList(barcodes, batchSize);
+  // Each barcode lookup will consist of a CQL query of the form "barcode==N"
+  // separated by "OR" with percent-encoded space characters around it. E.g.:
+  //   barcode==35047019076454%20OR%20barcode==35047019076453
+  // Estimating the average length of a barcode term (14-15 char barcode +
+  // characters for "barcode==" and "%20OR%20") and assuming a max URL length
+  // of 2048 leads to an estimate of ~65 barcodes max per query. Using the
+  // number 50 is very conservative and also convenient for mental math.
+  const barcodeBatches = batchedList(barcodes, 50);
   let row = 1;                          // Offset +1 for header row.
   barcodeBatches.forEach((batch, index) => {
     if (numBarcodes > 10 && batch.length >= 10) {
       note(`Getting ${nth(index + 1)} batch of ${batch.length} records` +
-           ` out of a total of ${numBarcodes} …`, batch.length);
+           ` out of a total of ${numBarcodes} …`);
     } else {
       note(`Getting ${batch.length} records …`);
     }
@@ -151,89 +156,85 @@ function lookUpBarcodes() {
 /**
  * Returns the FOLIO item data for a list of barcodes.
  */
-function itemRecords(barcodeList, folio_url, tenant_id, token) {
-  let requests = barcodeList.map(barcode => {
-    return {
-      'url': `${folio_url}/inventory/items?query=barcode=${barcode}`,
-      'method': 'get',
-      'contentType': 'application/json',
-      'headers': {
-        'x-okapi-tenant': tenant_id,
-        'x-okapi-token': token
-      },
-      'muteHttpExceptions': true
-    };
-  });
+function itemRecords(barcodes, folio_url, tenant_id, token) {
+  let barcodeTerms = barcodes.join('%20OR%20barcode==');
+  let baseUrl = `${folio_url}/inventory/items`;
+  // If there's only 1 barcode, barcodeTerms will be just that one. If > 1,
+  // barcodeTerms will be "35047019076454%20OR%20barcode==35047019076453" etc
+  let query = `?limit=${barcodes.length}&query=barcode==${barcodeTerms}`;
+  let endpoint = baseUrl + query;
+  let options = {
+    'method': 'get',
+    'contentType': 'application/json',
+    'headers': {
+      'x-okapi-tenant': tenant_id,
+      'x-okapi-token': token
+    },
+    'muteHttpExceptions': true
+  };
 
-  log(`doing HTTP post on ${folio_url} for ${barcodeList}`);
-  let responses = UrlFetchApp.fetchAll(requests);
-  if (!nonempty(responses)) {
-    log('fetchAll did not return any results');
-    quit('Stopped due to an error',
-         'The network call to FOLIO failed to return any results.' +
-         ' This should not happen and probably indicates an error' +
-         ' in this program. Try the operation again in case it is' +
-         ' due to a transient network error; if you get this same' +
-         ' error again, please report this to the developers.');
+  log(`doing HTTP post on ${endpoint}`);
+  let response = UrlFetchApp.fetch(endpoint, options);
+
+  // If there was an error, stop short and exit immediately.
+  let httpCode = response.getResponseCode();
+  log(`got HTTP response code ${httpCode}`);
+  if (httpCode >= 300) {
+    note('Stopping due to error.', 0.1);
+    switch (httpCode) {
+      case 400:
+      case 401:
+      case 403:
+        quit('Stopped due to a permissions error',
+             'A FOLIO authentication error occurred. This can be' +
+             ' due to an invalid FOLIO URL, tenant ID, or token,' +
+             ' or if the user account lacks FOLIO permissions to' +
+             ' perform the action requested. To fix this, try to' +
+             ' reset the FOLIO credentials (using the Boffo menu' +
+             ' option for that).  If this error persists, please' +
+             ' contact your FOLIO administrator for assistance.');
+        break;
+      case 404:
+        quit('Stopped due to an error',
+             'The API call made by Boffo does not seem to exist at' +
+             ' the address Boffo attempted to use. This may be due' +
+             ' to a temporary network glitch. Please wait a moment' +
+             ' then retry the same operation again. If the problem' +
+             ' persists, please report this to the developers.');
+        break;
+      case 409:
+      case 500:
+      case 501:
+        quit('Stopped due to a server error',
+             'FOLIO turned an internal server error. This may be due' +
+             ' to a temporary problem with FOLIO itself. Please wait' +
+             ' a moment, then retry the same operation. If the error' +
+             ' persists, please report it to the developers.' +
+             ` (Error code ${httpCode}.)`);
+        break;
+      default:
+        quit('Stopped due to an error',
+             `An error occurred communicating with FOLIO` +
+             ` (code ${httpCode}). Please report this to` +
+             ' the developers.');
+    }
   }
 
-  let records = [];
-  responses.forEach((response, index) => {
-    let barcode = barcodeList[index];
-
-    // If there was an error, stop short and exit immediately.
-    let httpCode = response.getResponseCode();
-    log(`got HTTP response code ${httpCode} for ${barcode}`);
-    if (httpCode >= 300) {
-      note('Stopping due to error.', 0.1);
-      switch (httpCode) {
-        case 400:
-        case 401:
-        case 403:
-          quit('Stopped due to a permissions error',
-               'A FOLIO authentication error occurred. This can be' +
-               ' due to an invalid FOLIO URL, tenant ID, or token,' +
-               ' or if the user account lacks FOLIO permissions to' +
-               ' perform the action requested. To fix this, try to' +
-               ' reset the FOLIO credentials (using the Boffo menu' +
-               ' option for that).  If this error persists, please' +
-               ' contact your FOLIO administrator for assistance.');
-          break;
-        case 404:
-          quit('Stopped due to an error',
-               'The API call made by Boffo does not seem to exist at' +
-               ' the address Boffo attempted to use. This may be due' +
-               ' to a temporary network glitch. Please wait a moment' +
-               ' then retry the same operation again. If the problem' +
-               ' persists, please report this to the developers.');
-          break;
-        case 409:
-        case 500:
-        case 501:
-          quit('Stopped due to a server error',
-               'FOLIO turned an internal server error. This may be due' +
-               ' to a temporary problem with FOLIO itself. Please wait' +
-               ' a moment, then retry the same operation. If the error' +
-               ' persists, please report it to the developers.' +
-               ` (Error code ${httpCode}.)`);
-          break;
-        default:
-          quit('Stopped due to an error',
-               `An error occurred communicating with FOLIO` +
-               ` (code ${httpCode}). Please report this to` +
-               ' the developers.');
-      }
-    }
-
-    let folioResult = JSON.parse(response.getContentText());
-    if (folioResult.totalRecords == 0) {
-      log(`Folio did not return data for ${barcode}`);
-      records.push({'barcode': barcode});
-    } else {
-      records.push(folioResult.items[0]);
-    }
-  });
-  return records;
+  let folioResult = JSON.parse(response.getContentText());
+  log(`Folio returned ${folioResult.totalRecords} records`);
+  if (folioResult.totalRecords == 0) {
+    return [];
+  } else {
+    // We want the items returned in the order requested, but if a barcode
+    // isn't found, it won't be in the results from Folio. Hence the following.
+    let itemsByBarcode = folioResult.items.reduce((itemsByBarcode, item) => {
+      itemsByBarcode[item.barcode] = item;
+      return itemsByBarcode;
+    }, {});
+    return barcodes.map(barcode => {
+      return barcode in itemsByBarcode ? itemsByBarcode[barcode] : {'barcode': barcode};
+    });
+  }
 }
 
 /**
@@ -467,7 +468,7 @@ function callBoffoFunction(name) {
 
 /**
  * Returns true if the user's stored token is valid, based on contacting FOLIO.
- * Note: not currently used, but kept in case it's needed in the future.
+ * Note: not currently used. Kept in case it's needed in the future.
  */
 function haveValidToken() {
   const props = PropertiesService.getUserProperties();
@@ -589,7 +590,7 @@ function uniqueSheetName(baseName = 'Item Data') {
 function getBoffoMetadata() {
   // Ideally, we would simply read the codemeta.json file. Unfortunately,
   // Google Apps Scripts only provides a way to read HTML files in the local
-  // script directory, not JSON files. But that won't stop us! If we add a
+  // script directory, not JSON files. That won't stop us, though! If we add a
   // symlink in the repository named "version.html" pointing to codemeta.json,
   // voilà, we can read it using HtmlService and parse the content as JSON.
 
