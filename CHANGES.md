@@ -1,5 +1,10 @@
 # Change log for Boffo
 
+## Version 1.3.0
+
+This version dramatically speeds up Boffo. The approach gets data from Folio in batches of 50 records at a time, and also writes the Google sheet in blocks of 50 rows. In testing, the new version gets record at a rate of between 70--100 records/second.
+
+
 ## Version 1.2.0
 
 This version speeds up data fetches from the FOLIO server. Boffo should now be roughly twice as fast, which means that compared to the previous version, it can now look up twice as many barcodes before it hits the institutional time limit on Apps Script functions (which is 1800 seconds for Caltech Library users). In testing, the maximum number of records is around 1100.
