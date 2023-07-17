@@ -2,6 +2,7 @@
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "Boffo",
+  "identifier": "boffo",
   "description": "Boffo (Barcodes from FOLIO) is a Google Apps script that looks up item barcodes in a FOLIO instance.",
   "version": "1.2.0",
   "datePublished": "2023-07-12",
