@@ -62,7 +62,8 @@ today	 := $(shell date "+%F")
 
 #: Print a summary of available commands.
 help:
-	@echo This is the Makefile for $(name). Available commands:
+	@echo "This is the Makefile for $(bright)$(name)$(reset)."
+	@echo "Available commands:"
 	@echo
 	@grep -B1 -E "^[a-zA-Z0-9_-]+\:([^\=]|$$)" $(MAKEFILE_LIST) \
 	| grep -v -- -- \
@@ -72,13 +73,13 @@ help:
 
 #: Summarize how to do a release using this makefile.
 instructions:;
-	$(info $(instructions_text))
+	@$(info $(instructions_text))
 
 define instructions_text =
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Steps for doing a release                                       ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
- 1. Run $(color)make lint$(reset) and fix any problems.
+ 1. Run $(color)make lint$(reset), fix any problems, and commit any changes.
  2. Update the version number in the file codemeta.json.
  3. Check $(color)make report$(reset) (but ignore current id & DOI).
  4. Write notes in the file CHANGES.md and commit the file.
@@ -143,7 +144,7 @@ lint:
 #: Make release on GitHub & update copies in Google GAS projects.
 release: | test-branch confirm-release release-on-github sync-projects print-next-steps
 
-test-branch:;
+test-branch:
 ifneq ($(branch),main)
 	$(error Current git branch != main. Merge changes into main first!)
 endif
@@ -246,15 +247,16 @@ clean: clean-release clean-other
 	rm -f tests/*.log
 	@echo ✨ Cleaned! ✨
 
-#: Print a random joke from https://icanhazdadjoke.com/
+#: Print a random joke from https://icanhazdadjoke.com/.
 joke:
 	@echo "$(shell curl -s https://icanhazdadjoke.com/)"
 
 # Color codes used in messages.
-color := $(shell tput bold; tput setaf 6)
-dim   := $(shell tput setaf 66)
-link  := $(shell tput setaf 111)
-reset := $(shell tput sgr0)
+color  := $(shell tput bold; tput setaf 6)
+bright := $(shell tput bold; tput setaf 15)
+dim    := $(shell tput setaf 66)
+link   := $(shell tput setaf 111)
+reset  := $(shell tput sgr0)
 
 .PHONY: help instructions vars report release test-branch tests update-all \
 	update-init update-meta update-citation update-example commit-updates \
