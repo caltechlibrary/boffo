@@ -5,35 +5,14 @@
 // @website https://github.com/caltechlibrary/boffo
 
 
-// Global constants.
-// ............................................................................
-
-// FOLIO item record fields put into the results sheet when the user calls on
-// findBarcodes. The order determines the order of the columns in the results
-// sheet, and the length of this array determines the number of columns.
-const fields = [
-  ['Barcode'                  , (item) => item.barcode],
-  ['Title'                    , (item) => item.title],
-  ['Material type'            , (item) => item.materialType.name],
-  ['Status'                   , (item) => item.status.name],
-  ['Effective location'       , (item) => item.effectiveLocation.name],
-  ['Effective call number'    , (item) => item.effectiveCallNumberComponents.callNumber],
-  ['Enumeration'              , (item) => item.enumeration],
-  ['Item UUID'                , (item) => item.id],
-];
-
-// Regexp for testing that a string looks like a valid Caltech Library barcode.
-const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
-
-
 // Google Sheets add-on menu definition.
 // ............................................................................
-// This creates the "Boffo" menu item in the Extensions menu in Google Sheets.
-// Note: onInstall() gets called when the user installs the add-on; onOpen()
-// gets called when they open a sheet (or do a page reload in their browser).
-// However, onInstall() doesn't seem to get called when you are working on
-// Boffo in a script project in Google's online editor, so both functions have
-// to be defined, even though they end up doing the same thing.
+// This creates the "Boffo" menu item in the Extensions menu in Google
+// Sheets. Note: onInstall() gets called when the user installs the add-on
+// from the Google Marketplace; onOpen() gets called when the user open a
+// sheet (or do a page reload in their browser). The Google documentation at
+// https://developers.google.com/apps-script/add-ons/concepts/editor-auth-lifecycle
+// recommends that you call onOpen() from onInstall().
 
 function onOpen() {
   // BEWARE: in the addItem calls below, the spaces after the icons are
@@ -80,6 +59,83 @@ function onInstall() {
 }
 
 
+// FOLIO data field-handling abstractions.
+// ............................................................................
+// This section defines a global constant and associated object-handling
+// utilities that are used to determine which fields are shown from item
+// records, and how the field values are extracted from the record.
+
+const linefeed = String.fromCharCode(10);
+
+// Internal constructor function used in the definition of "fields" below.
+function Field(name, enabled, getValue) {
+  this.name = name;
+  this.enabled = enabled;
+  this.getValue = getValue;
+}
+
+// Helper function to concatenate strings contained in lists of objects.
+function collect(list, subfield) {
+  return list ? list.map(el => el[subfield]).join('; ') : '';
+}
+
+// Helper function for the special case of notes fields.
+function collectNotes(list) {
+  return list ? list.map(el => el.note).join(linefeed + linefeed) : '';
+}
+
+// FOLIO item record fields put into the results sheet when the user calls on
+// findBarcodes. The order determines the order of the columns in the results
+// sheet, and the length of this array determines the number of columns. The
+// list of fields is based on inventory records for items, not storage records,
+// drawn from examples in the Caltech Library FOLIO database.
+const fields = [
+  new Field('Barcode',                        true,  item => item.barcode),
+  new Field('Title',                          true,  item => item.title),
+  new Field('Call number',                    false, item => item.callNumber),
+  new Field('Circulation notes',              false, item => collectNotes(item.circulationNotes)),
+  new Field('Contributor names',              false, item => collect(item.contributorNames, 'name')),
+  new Field('Discovery suppress',             false, item => item.discoverySuppress),
+  new Field('Effective call number',          true,  item => item.effectiveCallNumberComponents.callNumber),
+  new Field('Effective call number prefix',   false, item => item.effectiveCallNumberComponents.prefix),
+  new Field('Effective call number suffix',   false, item => item.effectiveCallNumberComponents.suffix),
+  new Field('Effective call number type ID',  false, item => item.effectiveCallNumberComponents.typeId),
+  new Field('Effective location',             true,  item => item.effectiveLocation.name),
+  new Field('Effective location ID',          false, item => item.effectiveLocation.id),
+  new Field('Effective shelving order',       false, item => item.effectiveShelvingOrder),
+  new Field('Electronic access',              false, item => collect(item.electronicAccess, 'uri')),
+  new Field('Enumeration',                    true,  item => item.enumeration),
+  new Field('Former IDs',                     false, item => item.formerIds.join(', ')),
+  new Field('HRID',                           false, item => item.hrid),
+  new Field('Holdings record ID',             false, item => item.holdingsRecordId),
+  new Field('Is bound with',                  false, item => item.isBoundWith),
+  new Field('Item level call number',         false, item => item.itemLevelCallNumber),
+  new Field('Material type',                  true,  item => item.materialType.name),
+  new Field('Material type ID',               false, item => item.materialType.id),
+  new Field('Metadata: created by user ID',   false, item => item.metadata.createdByUserId),
+  new Field('Metadata: created date',         false, item => item.metadata.createdDate),
+  new Field('Metadata: updated by user ID',   false, item => item.metadata.updatedByUserId),
+  new Field('Metadata: updated date',         false, item => item.metadata.updatedDate),
+  new Field('Notes',                          false, item => collectNotes(item.notes)),
+  new Field('Permanent loan type',            false, item => item.permanentLoanType.name),
+  new Field('Permanent loan type ID',         false, item => item.permanentLoanType.id),
+  new Field('Permanent location',             false, item => item.permanentLocation.name),
+  new Field('Permanent location ID',          false, item => item.permanentLocation.id),
+  new Field('Purchase order line identifier', false, item => item.purchaseOrderLineIdentifier),
+  new Field('Statistical code IDs',           false, item => item.statisticalCodeIds.join(', ')),
+  new Field('Status',                         true,  item => item.status.name),
+  new Field('Status date',                    false, item => item.status.date),
+  new Field('Tags',                           false, item => item.tags.tagList.join(', ')),
+  new Field('Temporary location',             false, item => item.temporaryLocation.name),
+  new Field('Temporary location ID',          false, item => item.temporaryLocation.id),
+  new Field('UUID',                           true,  item => item.id),
+  new Field('Year caption',                   false, item => item.yearCaption.join(', '))
+];
+
+// Regexp for testing that a string looks like a valid Caltech Library barcode.
+const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
+
+
 // Menu item "Look up barcodes".
 // ............................................................................
 
@@ -112,7 +168,9 @@ function lookUpBarcodes() {
   log(`the user's selection contains ${numBarcodes} barcodes`);
 
   // Create a new sheet where results will be written.
-  let resultsSheet = createResultsSheet(numBarcodes, fields.map((field) => field[0]));
+  let enabledFields = fields.filter(f => f.enabled);
+  let headings = enabledFields.map(f => f.name);
+  let resultsSheet = createResultsSheet(numBarcodes, headings);
   let lastLetter = lastColumnLetter();
 
   // Get these values here instead of doing property lookups in the loop.
@@ -131,20 +189,27 @@ function lookUpBarcodes() {
   const barcodeBatches = batchedList(barcodes, 50);
   let row = 2;                          // Offset +1 for header row.
   let total = 0;
+  let emptyValues = new Array(enabledFields.length - 1).fill('');
   barcodeBatches.forEach((batch, index) => {
     log(`working on rows starting with ${row}`);
+    let cellValues = [];
     let records = itemRecords(batch, url, id, token);
-    let cellValues = records.map(rec => {
-      // If item was found, record will have an 'id' field.
-      if ('id' in rec) {
-        total++;
-        return fields.map(field => field[1](rec));
-      } else {
-        // Not found => create a row with only the barcode in the first cell.
-        return [rec.barcode, ...new Array(fields.length - 1).fill('')];
-      }
-    });
-    let cells = resultsSheet.getRange(row, 1, records.length, fields.length);
+    if (records.length == 0) {
+      log('received no records for this batch');
+      cellValues = batch.map(barcode => [barcode, ...emptyValues]);
+    } else {
+      cellValues = records.map(rec => {
+        // If item was found, record will have an 'id' field.
+        if ('id' in rec) {
+          total++;
+          return enabledFields.map(f => f.getValue(rec));
+        } else {
+          // Not found => create a row with only the barcode in the first cell.
+          return [rec.barcode, ...emptyValues];
+        }
+      });
+    }
+    let cells = resultsSheet.getRange(row, 1, cellValues.length, enabledFields.length);
     cells.setValues(cellValues);
     row += records.length;
   });
@@ -556,14 +621,19 @@ function getProp(prop) {
  * Returns the number of columns needed to hold the fields fetched from FOLIO.
  */
 function numColumns() {
-  return fields.length;
+  return fields.filter(f => f.enabled).length;
 }
 
 /**
  * Returns the spreadsheet column letter corresponding to the last column.
  */
 function lastColumnLetter() {
-  return 'ABCDEFGHIJKLMNOPQRSTUVWXY'.charAt(fields.length - 1);
+  let lastColIndex = numColumns() - 1;
+  if (lastColIndex >= 26) {
+    return 'A' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex - 26);
+  } else {
+    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex);
+  }
 }
 
 /**
@@ -573,7 +643,7 @@ function lastColumnLetter() {
  */
 function uniqueSheetName(baseName = 'Item Data') {
   let sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
-  let names = sheets.map((sheet) => sheet.getName());
+  let names = sheets.map(sheet => sheet.getName());
 
   // Compare candidate name against existing sheet names & increment counter
   // until we no longer get a match against any existing name.
