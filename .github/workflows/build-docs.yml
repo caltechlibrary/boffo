@@ -10,7 +10,7 @@
 # =============================================================================
 
 name: Build docs for gh-pages
-run-name: Update gh-pages for ${{inputs.release_tag || 'latest release'}}
+run-name: Build gh-pages for ${{inputs.release_tag || 'latest release'}}
 
 on:
   push:
