@@ -361,11 +361,13 @@ function menuItemSelectFields() {
                               + ` value=${i}`
                               + ((f.enabled || f.required) ? ' checked' : '')
                               + (f.required ? ' readonly' : '')
-                              + `>${f.name}<br>`).join('');
+                              + `>${f.name}`
+                              + (f.required ? ' <em>(required)</em>' : '')
+                              + '<br>').join('');
   // Setting the next variable on the template makes it available in the
   // script code embedded in the HTML source of fields-form.html.
   htmlTemplate.checkboxes = checkboxes;
-  const htmlContent = htmlTemplate.evaluate().setWidth(350).setHeight(480);
+  const htmlContent = htmlTemplate.evaluate().setWidth(350).setHeight(460);
   SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Select fields');
 }
 
