@@ -35,7 +35,9 @@ function collectNotes(list) {
 // findBarcodes. The order determines the order of the columns in the results
 // sheet, and the length of this array determines the number of columns. The
 // list of fields is based on inventory records for items, not storage records,
-// drawn from examples in the Caltech Library FOLIO database.
+// drawn from examples in the Caltech Library FOLIO database. The values for
+// the "enabled" field here are the initial defaults; users can change the
+// field choices using the "Select record fields to show" menu item.
 const fields = [
   // Name                                  Enabled Required getValue()
   //  ↓                                        ↓      ↓       ↓
@@ -100,7 +102,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Boffo')
     .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'menuItemLookUpBarcodes')
     .addSeparator()
-    .addItem('🇦︎ ﻿ ﻿Pick record fields to show', 'menuItemSelectFields')
+    .addItem('🇦︎ ﻿ ﻿Select record fields to show', 'menuItemSelectFields')
     .addItem('🪪︎ ﻿ ﻿Set FOLIO user credentials', 'menuItemGetCredentials')
     .addItem('🧹﻿ ﻿ Clear FOLIO token', 'menuItemClearToken')
     .addItem('ⓘ ﻿ ﻿ About Boffo', 'menuItemShowAbout')
@@ -348,6 +350,9 @@ function batchedList(input, sliceSize) {
 // Menu item "Select record fields".
 // ............................................................................
 
+/**
+ * Show a dialog to let the user select the record fields shown in the results.
+ */
 function menuItemSelectFields() {
   restoreFieldSelections();
   const htmlTemplate = HtmlService.createTemplateFromFile('fields-form');
