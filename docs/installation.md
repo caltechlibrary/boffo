@@ -79,7 +79,7 @@ If you are not at Caltech, you will not be able find Boffo in the Google Marketp
 
 ### Copying the Google Apps Script project
 
-This approach does not require the use of command-line tools, but it does require some patience and care because some of the steps below are very unintuitive.
+This approach does not require the use of command-line tools, but it does require some patience and care because some of the steps below are quite unintuitive.
 
 1. (Optional, but recommended for your sanity.) Create a folder in your Google Drive where you will put the Boffo project files that will be created in the following steps. For the purposes of this documentation, let's assume that this folder is named "Boffo example".
 2. Go to the [public folder for Boffo in Google Drive](https://drive.google.com/drive/folders/1PJErJ2ggFqT5H7pQkYr0wrpnf6YorHc-?usp=share_link). It should look more or less like what is shown in the screenshot below.<p align="center"><img width="800px" src="_static/media/boffo-google-drive-folder.png"></p>
@@ -92,7 +92,7 @@ This approach does not require the use of command-line tools, but it does requir
 9. Double-click on the apps script project (not the spreadsheet!). It should look more or less like the screenshot below.<p align="center"><img width="800px" src="_static/media/gas-editor.png"></p>
 10. Click on the blue _Deploy_ button at the top of the page, and select _Test deployments_ from the pull-down menu.<p align="center"><img width="800px" src="_static/media/gas-editor-deployments.png"></p>
 11. In dialog that opens next, note the list in the left-hand sidebar shows the item titled "Google Workspace Add-on" as the default. This is the wrong deployment to use for our purposes.<p align="center"><img width="800px" src="_static/media/gas-editor-deployments-wrong-kind.png"></p>
-12. Changing the deployment will take two steps. Click the gear icon next to _Select type_ and a pop-up menu will be shown. In this pop-up, you will initially find a check-mark next to the item "Google Workspace Add-on". Select it to _uncheck_ that item. The pop-up will disappear; click on the gear icon a second time, and now select the item titled "Editor Add-on". You should end up with the configuration shown in the screenshot below.<p align="center"><img width="800px" src="_static/media/gas-editor-deployments-right-kind.png"></p>
+12. Changing the deployment takes two steps. Click the gear icon next to _Select type_ and a pop-up menu will be shown. In this pop-up, you will initially find a check-mark next to the item "Google Workspace Add-on". Select it to _uncheck_ that item. The pop-up will disappear; click on the gear icon a second time, and now select the item titled "Editor Add-on". You should end up with the configuration shown in the screenshot below.<p align="center"><img width="800px" src="_static/media/gas-editor-deployments-right-kind.png"></p>
 13. With the configuration changed to "Editor Add-on", click on the button _Create new test_,<p align="center"><img width="800px" src="_static/media/gas-editor-create-test.png"></p>
 14. In the dialog that pops up, click on the up arrow icon in the 3rd field (where it initially shows "No document selected").<p align="center"><img width="800px" src="_static/media/gas-editor-select-test-document.png"></p>
 15. In the Google Drive selection dialog that is shown next, select the spreadsheet created in step #8 above. and click the blue _Insert_ button in the selection dialog.<p align="center"><img width="800px" src="_static/media/gas-editor-select-spreadsheet.png"></p>
