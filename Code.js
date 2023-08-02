@@ -317,7 +317,12 @@ function itemRecords(barcodes, folio_url, tenant_id, token) {
  */
 function createResultsSheet(numRows, headings) {
   let sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(uniqueSheetName());
-  sheet.setColumnWidths(1, numColumns(), 150);
+
+  let numColumnsNeeded = numColumns();
+  if (sheet.getMaxColumns() < numColumnsNeeded) {
+    sheet.insertColumns(1, numColumnsNeeded - sheet.getMaxColumns());
+  }
+  sheet.setColumnWidths(1, numColumnsNeeded, 150);
   sheet.setFrozenRows(1);
 
   let cells = sheet.getRange(`A1:A${numRows + 1}`);
