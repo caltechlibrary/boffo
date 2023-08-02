@@ -10,12 +10,12 @@
 # =============================================================================
 
 name: Build docs for gh-pages
+run-name: Update gh-pages for ${{inputs.release_tag || 'latest release'}}
 
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: ['main']
+    paths: ['docs/**']
 
 jobs:
   deploy:
