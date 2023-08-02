@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <!--
+    @file    fields-form.html
+    @brief   HTML + JS code to let the user select the item record fields shown
+    @created 2023-08-01
+    @license Please see the file named LICENSE in the project directory
+    @website https://github.com/caltechlibrary/boffo
+  -->
+  <head>
+    <base target="_top" />
+    <title>Select desired item record fields</title>
+    <meta charset="utf-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <?!= include('form-utilities.js'); ?>
+    <script>
+     const gs = google.script;
+
+     function success(value) {
+       delayedClose();
+     }
+
+     function failure(error) {
+       log('got an error: ' + error);
+       delayedClose();
+     }
+
+     // Invoked when the user clicks either "submit" or "cancel" on the form,
+     // and calls saveSelectedFields(...) if the choice was "submit".
+     function submitForm(which) { 
+       log(`user clicked submit ${which} on form`);
+
+       // We can't close the window until we're done with saveFieldSelections
+       // because then GAS will not execute the function, but the delay after
+       // the user clicks the submit button is noticeable and confusing. So:
+       document.getElementById('dialog').style.display = 'none';
+       document.getElementById('message').style.display = 'inherit';
+
+       if (which == "Cancel") {
+         delayedClose();
+         return;
+       }
+
+       let selectionElements = document.getElementsByName("selections");
+       let selections = new Array(selectionElements.length);
+       for (let i = 0; i < selectionElements.length; i++) {
+         selections[i] = selectionElements[i].checked;
+       }
+       gs.run
+         .withSuccessHandler(success)
+         .withFailureHandler(failure)
+         .saveFieldSelections(selections);
+     }
+
+     function selectAllCheckboxes() {
+       const checkboxes = document.querySelectorAll('input[type=checkbox]');
+       checkboxes.forEach(checkbox => { checkbox.checked = true; });
+     }
+
+     function deselectAllCheckboxes() {
+       const checkboxes = document.querySelectorAll('input[type=checkbox]');
+       checkboxes.forEach(checkbox => {
+         if (!checkbox.hasAttribute('readonly')) {
+           checkbox.checked = false; 
+         }
+       });
+     }
+
+     jQuery(document).on('click', function(e) {
+       // Check for type, avoid selecting the element for performance
+       if (e.target.type == 'checkbox') {
+         var el = jQuery(e.target);
+         if (el.prop('readonly')) {
+           e.preventDefault();
+         }
+       }
+     });
+    </script>
+    <?!= include('stylesheet.css'); ?>
+  </head>
+  <body>
+    <div id="dialog">
+      <div class="explanatory-text">
+        <p>Select the record fields you would like to see shown for each
+          item in the output spreadsheet.</p>
+        <p>
+          <input type="submit" onClick="selectAllCheckboxes();"
+                 class="checkbox" value="Select all"/>
+          &nbsp;
+          <input type="submit" onClick="deselectAllCheckboxes();"
+                 class ="checkbox" value="Deselect all"/>
+        </p>
+      </div>
+      <div class="form">
+        <form id="form" onsubmit="submitForm(this.submitted); return false;">
+          <fieldset style="height: 330px">
+            <?!= checkboxes ?>
+          </fieldset>
+          <input type="submit" class="button" value="Submit"
+                 onclick="this.form.submitted=this.value"/>
+          <input type="submit" class="button cancel" value="Cancel"
+                 onclick="this.form.submitted=this.value"/>
+        </form>
+      </div>
+    </div>
+    <div id="message" class="explanatory-text"
+         style="display: none; margin-top: 15em">
+      <p>Saving preferences &nbsp; <svg width="24" height="24" viewBox="0 -5 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_nOfF{animation:spinner_qtyZ 2s cubic-bezier(0.36,.6,.31,1) infinite}.spinner_fVhf{animation-delay:-.5s}.spinner_piVe{animation-delay:-1s}.spinner_MSNs{animation-delay:-1.5s}@keyframes spinner_qtyZ{0%{r:0}25%{r:3px;cx:4px}50%{r:3px;cx:12px}75%{r:3px;cx:20px}100%{r:0;cx:20px}}</style><circle class="spinner_nOfF" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_fVhf" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_piVe" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_MSNs" cx="4" cy="12" r="3"/></svg></p>
+    </div>
+  </body>
+</html>
