@@ -11,6 +11,7 @@
     <base target="_top" />
     <title>Select desired item record fields</title>
     <meta charset="utf-8" />
+    <?!= include('stylesheet.css'); ?>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <?!= include('form-utilities.js'); ?>
     <script>
@@ -30,9 +31,11 @@
      function submitForm(which) { 
        log(`user clicked submit ${which} on form`);
 
-       // We can't close the window until we're done with saveFieldSelections
-       // because then GAS will not execute the function, but the delay after
-       // the user clicks the submit button is noticeable and confusing. So:
+       // We can't close the dialog until we're done with saveFieldSelections
+       // because then GAS will not execute the function, but the execution
+       // loop takes several seconds, and leaving the dialog visible without
+       // any indication of what's happening is confusing to the user. The
+       // following hides the dialog content and shows a message + spinner.
        document.getElementById('dialog').style.display = 'none';
        document.getElementById('message').style.display = 'inherit';
 
@@ -67,7 +70,6 @@
      }
 
      jQuery(document).on('click', function(e) {
-       // Check for type, avoid selecting the element for performance
        if (e.target.type == 'checkbox') {
          var el = jQuery(e.target);
          if (el.prop('readonly')) {
@@ -76,13 +78,12 @@
        }
      });
     </script>
-    <?!= include('stylesheet.css'); ?>
   </head>
   <body>
     <div id="dialog">
       <div class="explanatory-text">
-        <p>Select the record fields you would like to see shown for each
-          item in the output spreadsheet.</p>
+        <p>Select the record fields to be shown for each
+          item in the output.</p>
         <p>
           <input type="submit" onClick="selectAllCheckboxes();"
                  class="checkbox" value="Select all"/>
@@ -93,7 +94,7 @@
       </div>
       <div class="form">
         <form id="form" onsubmit="submitForm(this.submitted); return false;">
-          <fieldset style="height: 330px">
+          <fieldset style="height: 310px">
             <?!= checkboxes ?>
           </fieldset>
           <input type="submit" class="button" value="Submit"
