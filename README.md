@@ -88,6 +88,8 @@ Software produced by the Caltech Library is Copyright © 2023 California Institu
 
 The [vector artwork](https://thenounproject.com/icon/barcode-5653940/) used as a starting point for the logo for this project was created by [Sunarto Hamizan](https://thenounproject.com/sunarto_hamizan/)  It is licensed under the Creative Commons [Attribution 3.0 Unported](https://creativecommons.org/licenses/by/3.0/deed.en) license.  The vector graphics was modified by Mike Hucka to change the color.
 
+The spinner used in some HTML dialogs shown by Boffo came from [SVG Spinners (CSS & SMIL)](https://github.com/n3r4zzurr0/svg-spinners) by [Utkarsh Verma](https://github.com/n3r4zzurr0). The code was copied on 2023-08-01 and is licensed under the MIT license by the author.
+
 This work was funded by the California Institute of Technology Library.
 
 <div align="center">
