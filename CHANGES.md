@@ -1,5 +1,14 @@
 # Change log for Boffo
 
+## Version 1.4.0
+
+This version introduces a new menu option, _Select record fields to show_, allowing the user to select which data fields are shown for item records retrieved from FOLIO.
+
+Other changes in this version:
+* Fixed: Boffo would experience an error if you selected a single barcode and that barcode didn't exist in Folio. It will now write an empty row instead.
+* Fixed: the alignment of the barcode column was always incorrect for the last row of the results spreadsheet due to an off-by-one error in the code.
+
+
 ## Version 1.3.0
 
 This version dramatically speeds up Boffo. The approach gets data from Folio in batches of 50 records at a time, and also writes the Google sheet in blocks of 50 rows. In testing, the new version gets record at a rate of between 70--100 records/second.
