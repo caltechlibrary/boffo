@@ -49,7 +49,7 @@
     <title>Usage &#8212; Boffo</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e7352e39" />
     <link rel="stylesheet" type="text/css" href="_static/material.css?v=79c92029" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=faaf73c8" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=98ca0d78" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
@@ -241,6 +241,13 @@
     <li class="md-nav__item">
     
     
+      <a href="#select-record-fields" class="md-nav__link">Select record fields</a>
+      
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
       <a href="#reset-folio-credentials" class="md-nav__link">Reset FOLIO credentials</a>
       
     
@@ -346,6 +353,20 @@
 </figure>
 <p>If this is the first time you’ve used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and <em>not</em> your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).</p>
 </section>
+<section id="select-record-fields">
+<h2 id="select-record-fields">Select record fields<a class="headerlink" href="#select-record-fields" title="Permalink to this heading">¶</a></h2>
+<p>In the output sheet, Boffo will create a column for each data field to be shown for item records. You  can change the set of fields by using the option <em>Select record fields to show</em>:</p>
+<figure>
+<img class="shadow border" src="_static/media/menu-item-select-fields.png" width="550px"/>
+</figure>
+<p>This will cause Boffo to show a dialog in which there will be a scrollable list of record fields and checkboxes for each one:</p>
+<figure>
+<img class="shadow" src="_static/media/boffo-select-fields-dialog.png" width="350px"/>
+<figcaption>Dialog for selecting which item record fields Boffo should include in the output sheet.
+</figcaption>
+</figure>
+<p>Select the desired fields and/or unselect undesired fields, and click the <span class="button color-primary">Submit</span> button to save the selections. The next time Boffo does a barcode lookup, it will show the selected fields in the results sheet.</p>
+</section>
 <section id="reset-folio-credentials">
 <h2 id="reset-folio-credentials">Reset FOLIO credentials<a class="headerlink" href="#reset-folio-credentials" title="Permalink to this heading">¶</a></h2>
 <p>If you ever want to change the login that you use to access FOLIO services with Boffo, you can do so by selecting the <em>Set FOLIO credentials</em> item from Boffo’s menu:</p>
@@ -441,7 +462,7 @@
               Aug 02, 2023.
             <br/>
             Created using
-            <a href="http://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+            <a href="http://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
              and
             <a href="https://github.com/bashtage/sphinx-material/">Material for
               Sphinx</a>

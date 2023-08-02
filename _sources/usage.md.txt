@@ -31,6 +31,25 @@ Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ra
 If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
 
 
+## Select record fields
+
+In the output sheet, Boffo will create a column for each data field to be shown for item records. You  can change the set of fields by using the option _Select record fields to show_:
+
+<figure>
+<img class="shadow border" width="550px" src="_static/media/menu-item-select-fields.png">
+</figure>
+
+This will cause Boffo to show a dialog in which there will be a scrollable list of record fields and checkboxes for each one:
+
+<figure>
+<img class="shadow" width="350px" src="_static/media/boffo-select-fields-dialog.png">
+<figcaption>Dialog for selecting which item record fields Boffo should include in the output sheet.
+</figcaption>
+</figure>
+
+Select the desired fields and/or unselect undesired fields, and click the <span class="button color-primary">Submit</span> button to save the selections. The next time Boffo does a barcode lookup, it will show the selected fields in the results sheet.
+
+
 ## Reset FOLIO credentials
 
 If you ever want to change the login that you use to access FOLIO services with Boffo, you can do so by selecting the _Set FOLIO credentials_ item from Boffo's menu:

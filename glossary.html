@@ -49,7 +49,7 @@
     <title>Glossary &#8212; Boffo</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e7352e39" />
     <link rel="stylesheet" type="text/css" href="_static/material.css?v=79c92029" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=faaf73c8" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=98ca0d78" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
@@ -232,6 +232,13 @@
     <li class="md-nav__item">
     
     
+      <a href="usage.html#select-record-fields" class="md-nav__link">Select record fields</a>
+      
+    
+    </li>
+    <li class="md-nav__item">
+    
+    
       <a href="usage.html#reset-folio-credentials" class="md-nav__link">Reset FOLIO credentials</a>
       
     
@@ -320,7 +327,7 @@
             
   <section id="glossary">
 <h1 id="glossary--page-root">Glossary<a class="headerlink" href="#glossary--page-root" title="Permalink to this heading">¶</a></h1>
-<p>A glossary of common terms used in the InvenioRDM GitHub Archiver.</p>
+<p>A glossary of common terms used in Boffo.</p>
 <dl class="glossary">
 <dt id="term-API">API<a class="headerlink" href="#term-API" title="Permalink to this term">¶</a></dt><dd><p>API stands for <em>application programming interface</em>. An API is an
 interface through which interactions between software can take place. It
@@ -333,6 +340,12 @@ an item in FOLIO.</p>
 in Google Apps Script that provides a function for
 <a class="reference external" href="https://www.google.com/sheets/about/">Google Sheets</a> to look
 up item barcodes in FOLIO.</p>
+</dd>
+<dt id="term-Field">Field<a class="headerlink" href="#term-Field" title="Permalink to this term">¶</a></dt><dd><p>A location within a <em>record</em> where a specific kind of information is
+stored. Sometimes called “attributes” or “slots” of a record or data
+object. A record will typically have many fields, and each field will
+store a value that describes a different facet of the thing
+represented by the record.</p>
 </dd>
 <dt id="term-FOLIO">FOLIO<a class="headerlink" href="#term-FOLIO" title="Permalink to this term">¶</a></dt><dd><p><a class="reference external" href="https://www.folio.org">FOLIO</a> stands for <em>Future Of Libraries Is OPEN</em>.
 It is an open-source library services platform.</p>
@@ -357,8 +370,11 @@ maintained in a library.</p>
 </dd>
 <dt id="term-PAT">PAT<a class="headerlink" href="#term-PAT" title="Permalink to this term">¶</a></dt><dd><p>PAT stands for <em>personal access token</em>. A PAT is string of characters
 used to authenticate a user when accessing a network service; it is a
-alternative to authentication via account+password combinations. PATs
-are used by both GitHub and InvenioRDM.</p>
+alternative to authentication via account+password combinations.</p>
+</dd>
+<dt id="term-Record">Record<a class="headerlink" href="#term-Record" title="Permalink to this term">¶</a></dt><dd><p>Information stored in a structured manner in a software system. In FOLIO,
+an <em>item record</em> is the electronic data object that contains information
+about an <em>item</em>.</p>
 </dd>
 </dl>
 </section>
@@ -413,7 +429,7 @@ are used by both GitHub and InvenioRDM.</p>
               Aug 02, 2023.
             <br/>
             Created using
-            <a href="http://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+            <a href="http://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
              and
             <a href="https://github.com/bashtage/sphinx-material/">Material for
               Sphinx</a>
