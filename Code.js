@@ -367,13 +367,13 @@ function menuItemSelectFields() {
   restoreFieldSelections();
   const htmlTemplate = HtmlService.createTemplateFromFile('fields-form');
   let checkboxes = fields.map((f, i) =>
-                              '<input type="checkbox" name="selections"'
-                              + ` value=${i}`
-                              + ((f.enabled || f.required) ? ' checked' : '')
-                              + (f.required ? ' readonly' : '')
-                              + `>${f.name}`
-                              + (f.required ? ' <em>(required)</em>' : '')
-                              + '<br>').join('');
+                              '<input type="checkbox" name="selections"' +
+                              ` value=${i}` +
+                              ((f.enabled || f.required) ? ' checked' : '') +
+                              (f.required ? ' readonly' : '') +
+                              `>${f.name}` +
+                              (f.required ? ' <em>(required)</em>' : '') +
+                              '<br>').join('');
   // Setting the next variable on the template makes it available in the
   // script code embedded in the HTML source of fields-form.html.
   htmlTemplate.checkboxes = checkboxes;
