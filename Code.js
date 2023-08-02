@@ -21,6 +21,11 @@ function Field(name, enabled, required, getValue) {
   this.getValue = getValue;
 }
 
+// Helper function to look up a subfield on a field that may not exist.
+function subfield(field, subfield) {
+  return field ? field[subfield] : '';
+}
+
 // Helper function to concatenate strings contained in lists of objects.
 function collect(list, subfield) {
   return list ? list.map(el => el[subfield]).join('; ') : '';
@@ -77,8 +82,8 @@ const fields = [
   new Field('Status',                         true,  false, item => item.status.name),
   new Field('Status date',                    false, false, item => item.status.date),
   new Field('Tags',                           false, false, item => item.tags.tagList.join(', ')),
-  new Field('Temporary location',             false, false, item => item.temporaryLocation.name),
-  new Field('Temporary location ID',          false, false, item => item.temporaryLocation.id),
+  new Field('Temporary location',             false, false, item => subfield(item.temporaryLocation, 'name')),
+  new Field('Temporary location ID',          false, false, item => subfield(item.temporaryLocation, 'id')),
   new Field('UUID',                           true,  false, item => item.id),
   new Field('Year caption',                   false, false, item => item.yearCaption.join(', '))
 ];
