@@ -740,10 +740,10 @@ function uniqueSheetName(baseName = 'Item Data') {
  * by this function match exactly the fields in the codemeta.json file.
  */  
 function getBoffoMetadata() {
-  // Ideally, we would simply read the codemeta.json file. Unfortunately,
-  // Google Apps Scripts only provides a way to read HTML files in the local
-  // script directory, not JSON files. That won't stop us, though! If we add a
-  // symlink in the repository named "version.html" pointing to codemeta.json,
+  // Ideally, we'd simply read the codemeta.json file. Unfortunately, Google
+  // Apps Scripts only provides a way to read HTML files in the local script
+  // directory, not JSON files. That won't stop us, though! If we add a symlink
+  // in the repository named "codemeta-symlink.html" pointing to codemeta.json,
   // voilà, we can read it using HtmlService and parse the content as JSON.
 
   let codemetaFile = {};
@@ -754,16 +754,16 @@ function getBoffoMetadata() {
   let errorThrown = new Error('Unable to continue.');
 
   try {  
-    codemetaFile = HtmlService.createHtmlOutputFromFile('version.html');
+    codemetaFile = HtmlService.createHtmlOutputFromFile('codemeta-symlink.html');
   } catch ({name, message}) {
-    log('Unable to read version.html: ' + message);
+    log('Unable to read codemeta-symlink.html: ' + message);
     SpreadsheetApp.getUi().alert(errorText);
     throw errorThrown;
   }
   try {
     return JSON.parse(codemetaFile.getContent());
   } catch ({name, message}) {
-    log('Unable to parse JSON content of version.html: ' + message);
+    log('Unable to parse JSON content of codemeta-symlink.html: ' + message);
     SpreadsheetApp.getUi().alert(errorText);
     throw errorThrown;
   }
