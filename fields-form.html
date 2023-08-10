@@ -29,7 +29,11 @@
      // Invoked when the user clicks either "submit" or "cancel" on the form,
      // and calls saveSelectedFields(...) if the choice was "submit".
      function submitForm(which) { 
-       log(`user clicked submit ${which} on form`);
+       log(`user clicked ${which} on form`);
+       if (which == "Cancel") {
+         delayedClose();
+         return;
+       }
 
        // We can't close the dialog until we're done with saveFieldSelections
        // because then GAS will not execute the function, but the execution
@@ -38,11 +42,6 @@
        // following hides the dialog content and shows a message + spinner.
        document.getElementById('dialog').style.display = 'none';
        document.getElementById('message').style.display = 'inherit';
-
-       if (which == "Cancel") {
-         delayedClose();
-         return;
-       }
 
        let selectionElements = document.getElementsByName("selections");
        let selections = new Array(selectionElements.length);
