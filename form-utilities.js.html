@@ -37,7 +37,7 @@
  //
  // Problem #2 is why other code never calls gs.host.close()
  // directly, even in cases where problem #1 is not at stake.
- function delayedClose() {
-   setTimeout(() => { google.script.host.close(); }, 300);
+ function delayedClose(duration = 300) {
+   setTimeout(() => { google.script.host.close(); }, duration);
  }
 </script>
