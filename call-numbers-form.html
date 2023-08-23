@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <!--
+    @file    call-numbers-form.html
+    @brief   HTML + JS code to ask the user for a range of call numbers
+    @created 2023-08-09
+    @license Please see the file named LICENSE in the project directory
+    @website https://github.com/caltechlibrary/boffo
+  -->
+  <head>
+    <base target="_top" />
+    <title>Indicate the range of call numbers</title>
+    <meta charset="utf-8" />
+    <?!= include('stylesheet.css'); ?>
+    <?!= include('form-utilities.js'); ?>
+    <script>
+     const gs = google.script;
+
+     function success(value, data) {
+       delayedClose();
+       gs.run.getItemsInCallNumberRange(data[0], data[1]);
+     }
+
+     function failure(error, data) {
+       log('got an error: ' + error);
+       delayedClose();
+     }
+
+     function submitForm(which) { 
+       log(`user clicked ${which} on form`);
+       if (which == "Cancel") {
+         delayedClose(0);
+         return;
+       }
+
+       // The server invocations take time, and meanwhile the dialog will be
+       // visible for several seconds as if nothing happened. If we don't
+       // show something to the user, they might think something is wrong.
+       document.getElementById('dialog').style.display = 'none';
+       document.getElementById('message').style.display = 'inherit';
+
+       const firstCN = document.getElementById("firstCN").value;
+       const lastCN = document.getElementById("lastCN").value;
+       gs.run
+         .withUserObject([firstCN, lastCN])
+         .withSuccessHandler(success)
+         .withFailureHandler(failure)
+         .proceed();
+     }
+    </script>
+  </head>
+  <body>
+    <div id="dialog">
+      <div class="explanatory-text">
+        <p>Provide the first and last call numbers in the range
+          to be looked up.</p>
+      </div>
+      <div class="form">
+        <form id="form" onsubmit="submitForm(this.submitted); return false;">
+          <label for="firstCN" class="label">Starting call number:</label>
+          <br/>
+          <input name="firstCN" id="firstCN" type="text" class="narrow field"
+                 autofocus required/>
+          <br/>
+          <label for="lastCN" class="label">Ending call number:</label>
+          <br/>
+          <input name="lastCN" id="lastCN" type="text" class="narrow field"
+                 required/>
+          <br/>
+          <input type="submit" class="button" value="Submit"
+                 onclick="this.form.submitted=this.value"/>
+          <input type="submit" class="button cancel" value="Cancel"
+                 onclick="this.form.submitted=this.value" formnovalidate/>
+        </form>
+      </div>
+    </div>
+    <div id="message" class="explanatory-text"
+         style="display: none; margin-top: 5em">
+      <p>Starting search &nbsp; <svg width="24" height="24" viewBox="0 -5 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_nOfF{animation:spinner_qtyZ 2s cubic-bezier(0.36,.6,.31,1) infinite}.spinner_fVhf{animation-delay:-.5s}.spinner_piVe{animation-delay:-1s}.spinner_MSNs{animation-delay:-1.5s}@keyframes spinner_qtyZ{0%{r:0}25%{r:3px;cx:4px}50%{r:3px;cx:12px}75%{r:3px;cx:20px}100%{r:0;cx:20px}}</style><circle class="spinner_nOfF" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_fVhf" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_piVe" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_MSNs" cx="4" cy="12" r="3"/></svg></p>
+    </div>
+  </body>
+</html>
