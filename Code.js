@@ -7,9 +7,6 @@
 
 // FOLIO data field-handling abstractions.
 // ............................................................................
-// This section defines a global constant and associated object-handling
-// utilities that are used to determine which fields are shown from item
-// records, and how the field values are extracted from the record.
 
 const linefeed = String.fromCharCode(10);
 
@@ -36,16 +33,16 @@ function collectNotes(list) {
   return list ? list.map(el => el.note).join(linefeed + linefeed) : '';
 }
 
-// FOLIO item record fields put into the results sheet when the user calls on
-// findBarcodes. The order determines the order of the columns in the results
+// The next variable determines the FOLIO item record fields written into the
+// results sheet. The order determines the order of the columns in the results
 // sheet, and the length of this array determines the number of columns. The
 // list of fields is based on inventory records for items, not storage records,
 // drawn from examples in the Caltech Library FOLIO database. The values for
 // the "enabled" field here are the initial defaults; users can change the
 // field choices using the "Select record fields to show" menu item.
 const fields = [
-  // Name                                  Enabled Required getValue()
-  //  ↓                                        ↓      ↓       ↓
+  //         Name                          Enabled Required getValue()
+  //          ↓                                ↓      ↓       ↓
   new Field('Barcode',                        true,  true,  item => item.barcode),
   new Field('Title',                          true,  false, item => item.title),
   new Field('Call number',                    false, false, item => item.callNumber),
@@ -105,9 +102,10 @@ function onOpen() {
   // BEWARE: in the addItem calls below, the spaces after the icons are
   // actually 2 unbreakable spaces. This detail is invisible in the editor.
   SpreadsheetApp.getUi().createMenu('Boffo')
-    .addItem('🔎 ﻿ ﻿Look up barcodes in FOLIO', 'menuItemLookUpBarcodes')
+    .addItem('🔎 ﻿ ﻿Look up selected item barcodes', 'menuItemLookUpBarcodes')
+    .addItem('🔦 ﻿ ﻿Find items in call number range', 'menuItemFindByCallNumbers')
     .addSeparator()
-    .addItem('🇦︎ ﻿ ﻿Select record fields to show', 'menuItemSelectFields')
+    .addItem('🇦︎ ﻿ ﻿Choose record fields to show', 'menuItemSelectFields')
     .addItem('🪪︎ ﻿ ﻿Set FOLIO user credentials', 'menuItemGetCredentials')
     .addItem('🧹﻿ ﻿ Clear FOLIO token', 'menuItemClearToken')
     .addItem('ⓘ ﻿ ﻿ About Boffo', 'menuItemShowAbout')
@@ -162,21 +160,13 @@ function menuItemLookUpBarcodes() {
  * FOLIO, and creates a new sheet with columns containing item field values.
  */
 function lookUpBarcodes() {
-  // Get array of values from spreadsheet. The list we get back is a list of
-  // single-item lists, so we also flatten it.
-  let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
-  let barcodes = selection.getActiveRange().getDisplayValues().flat();
+  const barcodes = barcodesFromSelection(true);
+  const numBarcodes = barcodes.length;
 
-  // Filter out strings that don't look like barcodes.
-  barcodes = barcodes.filter(x => barcodePattern.test(x));
-  let numBarcodes = barcodes.length;
-  if (numBarcodes < 1) {
-    // Either the selection was empty, or filtering removed everything.
-    const ui = SpreadsheetApp.getUi();
-    ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
+  if (numBarcodes == 0) {
+    log('nothing to do');
     return;
   }
-  log(`the user's selection contains ${numBarcodes} barcodes`);
 
   // Create a new sheet where results will be written.
   restoreFieldSelections();
@@ -253,67 +243,24 @@ function itemRecords(barcodes, folio_url, tenant_id, token) {
     'muteHttpExceptions': true
   };
 
-  log(`doing HTTP post on ${endpoint}`);
-  let response = UrlFetchApp.fetch(endpoint, options);
-
-  // If there was an error, stop short and exit immediately.
-  let httpCode = response.getResponseCode();
-  log(`got HTTP response code ${httpCode}`);
-  if (httpCode >= 300) {
-    note('Stopping due to error.', 0.1);
-    switch (httpCode) {
-      case 400:
-      case 401:
-      case 403:
-        quit('Stopped due to a permissions error',
-             'A FOLIO authentication error occurred. This can be' +
-             ' due to an invalid FOLIO URL, tenant ID, or token,' +
-             ' or if the user account lacks FOLIO permissions to' +
-             ' perform the action requested. To fix this, try to' +
-             ' reset the FOLIO credentials (using the Boffo menu' +
-             ' option for that).  If this error persists, please' +
-             ' contact your FOLIO administrator for assistance.');
-        break;
-      case 404:
-        quit('Stopped due to an error',
-             'The API call made by Boffo does not seem to exist at' +
-             ' the address Boffo attempted to use. This may be due' +
-             ' to a temporary network glitch. Please wait a moment' +
-             ' then retry the same operation again. If the problem' +
-             ' persists, please report this to the developers.');
-        break;
-      case 409:
-      case 500:
-      case 501:
-        quit('Stopped due to a server error',
-             'FOLIO turned an internal server error. This may be due' +
-             ' to a temporary problem with FOLIO itself. Please wait' +
-             ' a moment, then retry the same operation. If the error' +
-             ' persists, please report it to the developers.' +
-             ` (Error code ${httpCode}.)`);
-        break;
-      default:
-        quit('Stopped due to an error',
-             `An error occurred communicating with FOLIO` +
-             ` (code ${httpCode}). Please report this to` +
-             ' the developers.');
-    }
-  }
-
-  let folioResult = JSON.parse(response.getContentText());
-  log(`Folio returned ${folioResult.totalRecords} records`);
-  if (folioResult.totalRecords == 0) {
-    return [];
-  } else {
+  let result = fetchJSON(endpoint, options);
+  log(`Folio returned ${result.totalRecords} records`);
+  if (result.totalRecords > 0) {
     // We want the items returned in the order requested, but if a barcode
-    // isn't found, it won't be in the results from Folio. Hence the following.
-    let itemsByBarcode = folioResult.items.reduce((itemsByBarcode, item) => {
+    // isn't found, it won't be in the results from Folio. So, first build a
+    // temporary dictionary indexed by barcode, to be used in the next step.
+    let itemsByBarcode = result.items.reduce((itemsByBarcode, item) => {
       itemsByBarcode[item.barcode] = item;
       return itemsByBarcode;
     }, {});
+    // Now create a result list that is 1-1 with the list of barcodes given as
+    // input, in which each element is either a full data structure (if the
+    // barcode was found) or an object containing just the barcode (if not).
     return barcodes.map(barcode => {
       return barcode in itemsByBarcode ? itemsByBarcode[barcode] : {'barcode': barcode};
     });
+  } else {
+    return [];
   }
 }
 
@@ -357,11 +304,81 @@ function batchedList(input, sliceSize) {
 }
 
 
+// Menu item "Find items in call number range"
+// ............................................................................
+
+function menuItemFindByCallNumbers() {
+  withCredentials(findByCallNumbers);
+}
+
+function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
+  const htmlTemplate = HtmlService.createTemplateFromFile('call-numbers-form');
+  const htmlContent = htmlTemplate.evaluate().setWidth(300).setHeight(210);
+  log('showing dialog to get call number range');
+  SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Call number range');
+}
+
+function getItemsInCallNumberRange(firstCN, lastCN) {
+  const props     = PropertiesService.getUserProperties();
+  const folio_url = props.getProperty('boffo_folio_url');
+  const tenant_id = props.getProperty('boffo_folio_tenant_id');
+  const token     = props.getProperty('boffo_folio_api_token');
+
+  let baseUrl = `${folio_url}/inventory/items`;
+  let endpoint = baseUrl + callNumberRangeQuery(firstCN, lastCN);
+  let options = {
+    'method': 'get',
+    'contentType': 'application/json',
+    'escaping': false,
+    'headers': {
+      'x-okapi-tenant': tenant_id,
+      'x-okapi-token': token
+    },
+    'muteHttpExceptions': true
+  };
+
+  let results = fetchJSON(endpoint, options);
+  // If we get nothing, flip the order of the call numbers & try again.
+  if (results.totalRecords > 0) {
+    log(`got ${results.totalRecords} records for ${firstCN} -- ${lastCN}`);
+  } else {
+    log(`swapping the order of the call numbers and trying one more time`);
+    endpoint = baseUrl + callNumberRangeQuery(lastCN, firstCN);
+    results = fetchJSON(endpoint, options);
+    log(`got ${results.totalRecords} records for ${lastCN} -- ${firstCN}`);
+  }
+
+  // Create a new sheet where results will be written.
+  restoreFieldSelections();
+  // Make sure Call number is shown in the results.
+  setFieldEnabled('Call number', true);
+  let enabledFields = fields.filter(f => f.enabled);
+  let headings = enabledFields.map(f => f.name);
+  let resultsSheet = createResultsSheet(results.totalRecords, headings);
+  let lastLetter = lastColumnLetter();
+
+  // Write the results.
+  let cellValues = [];
+  results.items.forEach((record) => {
+    cellValues.push(enabledFields.map(f => f.getValue(record)));
+  });
+  let cells = resultsSheet.getRange(2, 1, results.totalRecords, enabledFields.length);
+  cells.setValues(cellValues);
+  return true;
+}
+
+function callNumberRangeQuery(firstCN, lastCN) {
+  return '?limit=10000&query=' +
+    encodeURI(`effectiveCallNumberComponents.callNumber>=${firstCN} AND ` +
+              `effectiveCallNumberComponents.callNumber<=${lastCN}`);
+}
+
+
 // Menu item "Select record fields".
 // ............................................................................
 
 /**
- * Show a dialog to let the user select the record fields shown in the results.
+ * Shows a dialog to let the user select the record fields shown in the results.
  */
 function menuItemSelectFields() {
   restoreFieldSelections();
@@ -382,7 +399,7 @@ function menuItemSelectFields() {
 }
 
 /**
- * Save the enabled/disabled state of fields from user properties.
+ * Saves the enabled/disabled state of fields from user properties.
  *
  * The user's record data field selections need to be persisted. The GAS
  * properties service only stores strings, which complicates storing the
@@ -400,7 +417,7 @@ function saveFieldSelections(selections) {
 }
 
 /**
- * Restore the enabled/disabled state of fields from user properties.
+ * Restores the enabled/disabled state of fields from user properties.
  */
 function restoreFieldSelections() {
   const props = PropertiesService.getUserProperties();
@@ -417,6 +434,18 @@ function restoreFieldSelections() {
       }
     });
   }
+}
+
+/**
+ * Sets a field's enabled/disabled status explicitly.
+ */
+function setFieldEnabled(name, status) {
+  fields.forEach((field, index) => {
+    if (field.name == name) {
+      field.enabled = status;
+      return;
+    }
+  });
 }
 
 
@@ -521,11 +550,11 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     },
     'muteHttpExceptions': true
   };
-
-  log(`doing HTTP post on ${endpoint}`);
   let response;
   let httpCode;
+
   try {
+    log(`doing HTTP post on ${endpoint}`);
     response = UrlFetchApp.fetch(endpoint, options);
     httpCode = response.getResponseCode();
     log(`got response from Folio with HTTP code ${httpCode}`);
@@ -554,10 +583,10 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     } else {
       log('no token in the FOLIO response headers');
       quit('Unexpectedly failed to get a token back',
-           'The call to FOLIO was successful, but FOLIO did not return' +
-           ' a token. This situation should never occur and probably' +
-           ' indicates a bug in Boffo. Please report this to the' +
-           ' developers and describe what led to it.', true);
+           'The call to FOLIO was successful but FOLIO did not return' +
+           ' a token. This should never occur, and probably indicates' +
+           ' a bug in Boffo. Please report this to the developers and' +
+           ' describe what led to it.', true);
       return false;
     }
 
@@ -696,6 +725,94 @@ function getProp(prop) {
 
 // Miscellaneous helper functions.
 // ............................................................................
+
+/**
+ * Does an HTTP call, checks for errors, and either quits or returns the
+ * response.
+ */
+function fetchJSON(endpoint, options) {
+  let response;
+  let httpCode;
+
+  try {
+    log(`doing HTTP ${options['method']} on ${endpoint}`);
+    response = UrlFetchApp.fetch(endpoint, options);
+    httpCode = response.getResponseCode();
+    log(`got HTTP response code ${httpCode}`);
+  } catch ({name, message}) {
+    log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
+    quit('Failed due to an unrecognized error', 
+         'Please carefully check the values entered in the form. If' +
+         ' you cannot find the problem or it appears to be a bug in' +
+         ' Boffo, please contact the developer and mention that you' +
+         ` received the following error message:  ${message}`, true);
+    return {};
+  }
+
+  if (httpCode >= 300) {
+    note('Stopping due to error.', 0.1);
+    switch (httpCode) {
+    case 400:
+    case 401:
+    case 403:
+      quit('Stopped due to a permissions error',
+           'A FOLIO authentication error occurred. This can be' +
+           ' due to an invalid FOLIO URL, tenant ID, or token,' +
+           ' or if the user account lacks FOLIO permissions to' +
+           ' perform the action requested. To fix this, try to' +
+           ' reset the FOLIO credentials (using the Boffo menu' +
+           ' option for that).  If this error persists, please' +
+           ' contact your FOLIO administrator for assistance.');
+      break;
+    case 404:
+      quit('Stopped due to an error',
+           'The API call made by Boffo does not seem to exist at' +
+           ' the address Boffo attempted to use. This may be due' +
+           ' to a temporary network glitch. Please wait a moment' +
+           ' then retry the same operation again. If the problem' +
+           ' persists, please report this to the developers.');
+      break;
+    case 409:
+    case 500:
+    case 501:
+      quit('Stopped due to a server error',
+           'FOLIO turned an internal server error. This may be due' +
+           ' to a temporary problem with FOLIO itself. Please wait' +
+           ' a moment, then retry the same operation. If the error' +
+           ' persists, please report it to the developers.' +
+           ` (Error code ${httpCode}.)`);
+      break;
+    default:
+      quit('Stopped due to an error',
+           `An error occurred communicating with FOLIO` +
+           ` (code ${httpCode}). Please report this to` +
+           ' the developers.');
+    }
+    return {};
+  }
+
+  return JSON.parse(response.getContentText());
+}
+
+/**
+ * Returns an array of barcodes based on the user's selection from the sheet.
+ */
+function barcodesFromSelection(required = false) {
+  // Get array of values from spreadsheet. The list we get back is a list of
+  // single-item lists, so we also flatten it.
+  let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
+  let barcodes = selection.getActiveRange().getDisplayValues().flat();
+
+  // Filter out strings that don't look like barcodes.
+  barcodes = barcodes.filter(x => barcodePattern.test(x));
+  if (barcodes.length < 1 && required) {
+    // Either the selection was empty, or filtering removed everything.
+    const ui = SpreadsheetApp.getUi();
+    ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
+  }
+  log(`the user's selection contains ${barcodes.length} barcodes`);
+  return barcodes;
+}
 
 /**
  * Returns the number of columns needed to hold the fields fetched from FOLIO.
@@ -842,4 +959,12 @@ function stripTrailingSlash(url) {
  */
 function nth(n) {
   return `${n}` + (["st", "nd", "rd"][((n + 90) % 100 - 10) % 10 - 1] || "th");
+}
+
+/**
+ * Returns true. This is a noop function used in some GAS 'run' calls
+ * in our HTML files so that the success handlers will be invoked.
+ */
+function proceed() {
+  return true;
 }
