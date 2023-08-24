@@ -18,7 +18,7 @@
 
      function success(value, data) {
        delayedClose();
-       gs.run.getItemsInCallNumberRange(data[0], data[1]);
+       gs.run.getItemsInCallNumberRange(data[0], data[1], data[2]);
      }
 
      function failure(error, data) {
@@ -36,13 +36,15 @@
        // The server invocations take time, and meanwhile the dialog will be
        // visible for several seconds as if nothing happened. If we don't
        // show something to the user, they might think something is wrong.
+       // So, hide the form, and show a message with a spinner.
        document.getElementById('dialog').style.display = 'none';
        document.getElementById('message').style.display = 'inherit';
 
-       const firstCN = document.getElementById("firstCN").value;
-       const lastCN = document.getElementById("lastCN").value;
+       const firstCN  = document.getElementById("firstCN").value;
+       const lastCN   = document.getElementById("lastCN").value;
+       const location = document.getElementById("location").value;
        gs.run
-         .withUserObject([firstCN, lastCN])
+         .withUserObject([firstCN, lastCN, location])
          .withSuccessHandler(success)
          .withFailureHandler(failure)
          .proceed();
@@ -53,19 +55,27 @@
     <div id="dialog">
       <div class="explanatory-text">
         <p>Provide the first and last call numbers in the range
-          to be looked up.</p>
+          to be looked up, and the location of the items. Note:
+          this only recognizes Library of Congress-style call numbers.
+        </p>
       </div>
       <div class="form">
         <form id="form" onsubmit="submitForm(this.submitted); return false;">
           <label for="firstCN" class="label">Starting call number:</label>
           <br/>
-          <input name="firstCN" id="firstCN" type="text" class="narrow field"
+          <input name="firstCN" id="firstCN" type="text" class="wide field"
                  autofocus required/>
           <br/>
           <label for="lastCN" class="label">Ending call number:</label>
           <br/>
-          <input name="lastCN" id="lastCN" type="text" class="narrow field"
+          <input name="lastCN" id="lastCN" type="text" class="wide field"
                  required/>
+          <br/>
+          <label for="location" class="label">Location:</label>
+          <br/>
+          <select name="Location" id="location" class="wide">
+            <?!= locationSelectorsList; ?>
+          </select>
           <br/>
           <input type="submit" class="button" value="Submit"
                  onclick="this.form.submitted=this.value"/>
@@ -75,7 +85,7 @@
       </div>
     </div>
     <div id="message" class="explanatory-text"
-         style="display: none; margin-top: 5em">
+         style="display: none; margin-top: 7em">
       <p>Starting search &nbsp; <svg width="24" height="24" viewBox="0 -5 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_nOfF{animation:spinner_qtyZ 2s cubic-bezier(0.36,.6,.31,1) infinite}.spinner_fVhf{animation-delay:-.5s}.spinner_piVe{animation-delay:-1s}.spinner_MSNs{animation-delay:-1.5s}@keyframes spinner_qtyZ{0%{r:0}25%{r:3px;cx:4px}50%{r:3px;cx:12px}75%{r:3px;cx:20px}100%{r:0;cx:20px}}</style><circle class="spinner_nOfF" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_fVhf" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_piVe" cx="4" cy="12" r="3"/><circle class="spinner_nOfF spinner_MSNs" cx="4" cy="12" r="3"/></svg></p>
     </div>
   </body>
