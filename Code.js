@@ -160,7 +160,7 @@ function menuItemLookUpBarcodes() {
  * FOLIO, and creates a new sheet with columns containing item field values.
  */
 function lookUpBarcodes() {
-  const barcodes = barcodesFromSelection(true);
+  const barcodes = getBarcodesFromSelection(true);
   const numBarcodes = barcodes.length;
 
   if (numBarcodes == 0) {
@@ -170,10 +170,10 @@ function lookUpBarcodes() {
 
   // Create a new sheet where results will be written.
   restoreFieldSelections();
-  let enabledFields = fields.filter(f => f.enabled);
-  let headings = enabledFields.map(f => f.name);
-  let resultsSheet = createResultsSheet(numBarcodes, headings);
-  let lastLetter = lastColumnLetter();
+  const enabledFields = fields.filter(f => f.enabled);
+  const headings = enabledFields.map(f => f.name);
+  const resultsSheet = createResultsSheet(numBarcodes, headings);
+  const lastLetter = getLastColumnLetter();
 
   // Get these values here instead of doing property lookups in the next loop.
   const {folioUrl, tenantId, token} = getStoredCredentials();
@@ -255,20 +255,20 @@ function itemRecords(barcodes, folioUrl, tenantId, token) {
  * Creates the results sheet and returns it.
  */
 function createResultsSheet(numRows, headings) {
-  let sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(uniqueSheetName());
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(makeUniqueSheetName());
 
-  let numColumnsNeeded = numColumns();
+  const numColumnsNeeded = getNumColumnsForSelectedFields();
   if (sheet.getMaxColumns() < numColumnsNeeded) {
     sheet.insertColumns(1, numColumnsNeeded - sheet.getMaxColumns());
   }
   sheet.setColumnWidths(1, numColumnsNeeded, 150);
   sheet.setFrozenRows(1);
 
-  let cells = sheet.getRange(`A1:A${numRows + 1}`);
+  const cells = sheet.getRange(`A1:A${numRows + 1}`);
   cells.setHorizontalAlignment('left');
 
-  let lastLetter = lastColumnLetter();
-  let headerRow = sheet.getRange(`A1:${lastLetter}1`);
+  const lastLetter = getLastColumnLetter();
+  const headerRow = sheet.getRange(`A1:${lastLetter}1`);
   headerRow.setValues([headings]);
   headerRow.setFontSize(10);
   headerRow.setFontColor('white');
@@ -278,6 +278,10 @@ function createResultsSheet(numRows, headings) {
   return sheet;
 }
 
+/**
+ * Takes an original list and returns a list of lists, where each sublist
+ * contains sliceSize number of items from the original list.
+ */
 function batchedList(input, sliceSize) {
   let output = [];
   let sliceStart = 0;
@@ -309,7 +313,7 @@ function menuItemFindByCallNumbers() {
  */
 function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
   const htmlTemplate = HtmlService.createTemplateFromFile('call-numbers-form');
-  let locationsList = getLocationsList();
+  const locationsList = getLocationsList();
   // Create the body of the <select> element on the page. This consists of
   // <option> elements, one for each Folio location name.
   htmlTemplate.locationSelectorsList = locationsList.map(el => {
@@ -328,8 +332,8 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
 function getLocationsList() {
   const {folioUrl, tenantId, token} = getStoredCredentials();
   // 5000 is simply a high enough number to get the complete list.
-  let endpoint = `${folioUrl}/locations?limit=5000`;
-  let results = fetchJSON(endpoint, tenantId, token);
+  const endpoint = `${folioUrl}/locations?limit=5000`;
+  const results = fetchJSON(endpoint, tenantId, token);
   if (! 'locations' in results) {
     log('failed to get locations from FOLIO server');
     quit('Unable to get list of locations from server',
@@ -338,7 +342,7 @@ function getLocationsList() {
          ' seconds, then retry the command again. If this problem persists,' +
          ' please report it to the developers.');
   }
-  let locationsList = results.locations.map(el => {
+  const locationsList = results.locations.map(el => {
     return {name: el['name'], id: el['id']};
   });
   return locationsList.sort((location1, location2) => {
@@ -354,29 +358,29 @@ function getLocationsList() {
 function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   note('Looking up call numbers …');
 
-  firstCN = verifiedCN(firstCN, locationId);
-  lastCN  = verifiedCN(lastCN, locationId);
+  firstCN = getVerifiedCN(firstCN, locationId);
+  lastCN  = getVerifiedCN(lastCN, locationId);
 
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
-  let endpoint = baseUrl + callNumberRangeQuery(firstCN, lastCN, locationId);
+  let endpoint = baseUrl + makeRangeQuery(firstCN, lastCN, locationId);
   let results = fetchJSON(endpoint, tenantId, token);
   // If we get nothing, flip the order of the call numbers & try again.
   if (results.totalRecords > 0) {
     log(`got ${results.totalRecords} records for ${firstCN} -- ${lastCN}`);
   } else {
     log(`swapping the order of the call numbers and trying one more time`);
-    endpoint = baseUrl + callNumberRangeQuery(lastCN, firstCN, locationId);
+    endpoint = baseUrl + makeRangeQuery(lastCN, firstCN, locationId);
     results = fetchJSON(endpoint, tenantId, token);
     log(`got ${results.totalRecords} records for ${lastCN} -- ${firstCN}`);
   }
   // If we still have nothing, quit.
   if (results.totalRecords == 0) {
-    // Get the location name.
-    const locName = getLocationsList().find(el => (el.id == locationId));
+    // Get the location name so we can write it in the error message.
+    const locName = getLocationsList().find(el => (el.id == locationId)).name;
     quit('No results for given call number range and location',
          `Searching FOLIO for the call number range ${firstCN} -- ${lastCN}` +
-         ' (in either order) at location "${locName}" produced no results.');
+         ` (in either order) at location "${locName}" produced no results.`);
   }
 
   note('Done ✨');
@@ -384,10 +388,10 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   restoreFieldSelections();
   // Make sure Call number is shown in the results.
   setFieldEnabled('Call number', true);
-  let enabledFields = fields.filter(f => f.enabled);
-  let headings = enabledFields.map(f => f.name);
-  let resultsSheet = createResultsSheet(results.totalRecords, headings);
-  let lastLetter = lastColumnLetter();
+  const enabledFields = fields.filter(f => f.enabled);
+  const headings = enabledFields.map(f => f.name);
+  const resultsSheet = createResultsSheet(results.totalRecords, headings);
+  const lastLetter = getLastColumnLetter();
 
   log('writing results to sheet');
   let cellValues = [];
@@ -402,58 +406,61 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
 /**
  * Returns a query string to get items for a range of call numbers.
  */
-function callNumberRangeQuery(firstCN, lastCN, locationId) {
+function makeRangeQuery(firstCN, lastCN, locationId) {
   return '?limit=100&query=' +
     encodeURI(`effectiveLocationId==${locationId} AND ` +
               `effectiveCallNumberComponents.callNumber>="${firstCN}" AND ` +
               `effectiveCallNumberComponents.callNumber<="${lastCN}"`);
 }
 
-function verifiedCN(cn, locationId) {
-  let items = itemsForCN(cn);
-  if (items.length == 1) {
+/**
+ * Returns the effectiveCallNumberComponents.callNumber value of an item
+ * found by searching for the given call number at the location identified
+ * by the given location UUID. This has the effect of verifying that an
+ * item with the given call number exists in the database, and may also
+ * provide a slightly more normalized version of the call number. If 
+ * searching for the given call number produces more than one result, one
+ * is picked at random.
+ */
+function getVerifiedCN(cn, locationId) {
+  const items = getItemsForCN(cn, locationId);
+  if (items.length > 0) {
+    // Found at least one item for the given CN + location. Return 1st value.
     return items[0].effectiveCallNumberComponents.callNumber;
-  } else if (items.length == 0) {
-    log(`could not find ${cn}`);
-    quit(`Unable to find a match for "${cn}"`,
-         `The given call number (${cn}) could not be found in the FOLIO` +
-         ' database. Please check the call number carefully and try the' +
-         ' command again. If you are certain the call number exists, it' +
-         ' is possible a temporary network glitch occurred; please wait' +
-         ' a few seconds then try again. If the problem still persists,' +
-         ' please report it to the developers.');
-  } else if (items.length > 1) {
-    // Found more than one item for the given CN. The library may have
-    // multiple copies in different locations. Try to match on the location.
-    // If can't, then quit; if we find more than one, we pick one randomly.
-    log(`got back ${items.length} items for ${cn}; trying to match location`);
-    for (const item of items) {
-      if (item.effectiveLocation.id == locationId) {
-        return item.effectiveCallNumberComponents.callNumber;
-      }
-    }
+  } else {
+    // Get the location name so we can write it in the error message.
+    const locName = getLocationsList().find(el => (el.id == locationId)).name;
+    log(`failed to find an item with call number ${cn} at this location`);
+    quit(`Could not find an item with call number ${cn} at this location`,
+         'Searching in FOLIO did not return any items at the location' +
+         ` "${locName}" for the call number as written. Please verify` +
+         ` that "${cn}" is correct (paying special attention to space` +
+         ' characters) and that the location is the correct one, then' +
+         ' try the command again.  If you are certain the call number' +
+         " exists, it's possible a temporary network glitch occurred;" +
+         ' in that case, please wait a few seconds and try again.  If' +
+         ' the problem persists, please report it to the developers.');
+    return '';
   }
-  log('failed to find an item with call number ${cn} at this location');
-  quit(`Unable to find an item with call number ${cn} at this location`,
-       `Boffo found multiple items with call number ${cn}, but none of` +
-       ' them match the given location. The lookup cannot proceed.');
 }
 
 /**
  * Searches by call number and returns a list of item records found.
  */
-function itemsForCN(cn) {
+function getItemsForCN(cn, locationId) {
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
   function fetchJSONbyCN(thisCN) {
     const baseUrl = `${folioUrl}/inventory/items`;
-    const encodedCN = encodeURI(`"${thisCN}"`);
-    const query = `?query=effectiveCallNumberComponents.callNumber==${encodedCN}`;
+    const query = '?limit=100&query=' +
+          encodeURI(`effectiveLocationId==${locationId} AND ` +
+                    `effectiveCallNumberComponents.callNumber=="${thisCN}"`);
     const endpoint = baseUrl + query;
     return fetchJSON(endpoint, tenantId, token);
   }
 
   let results = fetchJSONbyCN(cn);
+  log(`got ${results.totalRecords} records`);
   if (results.totalRecords > 0) {
     return results.items;
   } else {
@@ -462,15 +469,13 @@ function itemsForCN(cn) {
     // exact text of the call number in the Folio database is different from
     // the expected text. We try again using different likely variations.
     log(`initial call number ${cn} not found; trying alternatives`);
-    const candidates = candidateCNs(cn);
-    for (let i = 0; i < candidates.length; i++) {
-      log(`trying "${candidates[i]}"`);
-      results = fetchJSONbyCN(candidates[i]);
+    for (const candidate of getCandidateCNs(cn)) {
+      results = fetchJSONbyCN(candidate);
+      log(`searching for ${candidate} produced ${results.totalRecords} items`);
       if (results.totalRecords > 0) {
-        log(`found ${candidates[i]}`);
         return results.items;
       }
-    };
+    }
   }
   return [];
 }
@@ -518,7 +523,7 @@ function itemsForCN(cn) {
  *   DT423.E26 9th.ed. 2012      -> DT423.E26 9th.ed. 2012
  *                                  DT423.E26 9th .ed. 2012
  */
-function candidateCNs(givenCN) {
+function getCandidateCNs(givenCN) {
   let cn = givenCN;
 
   // Remove any space between the initial letter(s) and the first number.
@@ -540,6 +545,8 @@ function candidateCNs(givenCN) {
          'Call numbers are expected to begin with 1-3 letters followed by' +
          ` at least one digit, but the given value "${givenCN}" does not.`);
   }
+
+  // FIXME this does not produce all possible combinations.
 
   // Look at what follows the class number. If there are substrings that have
   // the form of a dot followed by a letter, use that to create variations.
@@ -567,17 +574,17 @@ function candidateCNs(givenCN) {
 function menuItemSelectFields() {
   restoreFieldSelections();
   const htmlTemplate = HtmlService.createTemplateFromFile('fields-form');
-  let checkboxes = fields.map((f, i) =>
-                              '<input type="checkbox" name="selections"' +
-                              ` value=${i}` +
-                              ((f.enabled || f.required) ? ' checked' : '') +
-                              (f.required ? ' readonly' : '') +
-                              `>${f.name}` +
-                              (f.required ? ' <em>(required)</em>' : '') +
-                              '<br>').join('');
+  const checkboxesList = fields.map((f, i) => 
+    '<input type="checkbox" name="selections"' +
+      ` value=${i}` +
+      ((f.enabled || f.required) ? ' checked' : '') +
+      (f.required ? ' readonly' : '') +
+      `>${f.name}` +
+      (f.required ? ' <em>(required)</em>' : '') +
+      '<br>');
   // Setting the next variable on the template makes it available in the
   // script code embedded in the HTML source of fields-form.html.
-  htmlTemplate.checkboxes = checkboxes;
+  htmlTemplate.checkboxes = checkboxesList.join('');
   const htmlContent = htmlTemplate.evaluate().setWidth(350).setHeight(460);
   SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Select fields');
 }
@@ -607,8 +614,8 @@ function restoreFieldSelections() {
   const props = PropertiesService.getUserProperties();
   if (props.getProperty('boffo_fields')) {
     log('found field selections in user properties -- restoring them');
-    let originalFieldStates = fields.map(field => field.enabled);
-    let storedFields = JSON.parse(props.getProperty('boffo_fields'));
+    const originalFieldStates = fields.map(field => field.enabled);
+    const storedFields = JSON.parse(props.getProperty('boffo_fields'));
     fields.forEach((field, index) => {
       // Sanity check in case different versions of Boffo change the fields.
       // Only restore those whose names match. If there are mismatches, only
@@ -648,7 +655,7 @@ function menuItemGetCredentials() {
  * saves them if a token is successfully obtained.
  */
 function getCredentials() {
-  let dialog = buildCredentialsDialog();
+  const dialog = buildCredentialsDialog();
   log('showing dialog to get credentials');
   SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO credentials');
 }
@@ -661,7 +668,7 @@ function getCredentials() {
  */
 function buildCredentialsDialog(callAfterSuccess = '') {
   log(`building form for Folio creds; callAfterSuccess = ${callAfterSuccess}`);
-  let htmlTemplate = HtmlService.createTemplateFromFile('credentials-form');
+  const htmlTemplate = HtmlService.createTemplateFromFile('credentials-form');
   htmlTemplate.callAfterSuccess = callAfterSuccess;
   return htmlTemplate.evaluate().setWidth(475).setHeight(350);
 }
@@ -697,7 +704,7 @@ function withCredentials(funcToCall) {
     funcToCall();
   } else {
     log(`need to get credentials before calling ${funcToCall.name}`);
-    let dialog = buildCredentialsDialog(funcToCall.name);
+    const dialog = buildCredentialsDialog(funcToCall.name);
     SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO information needed');
   }
 }
@@ -719,13 +726,13 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   // Before saving the given info, we try to create a token. If that fails,
   // don't save the input because something is probably wrong with it.
   url = stripTrailingSlash(url);
-  let endpoint = url + '/authn/login';
-  let payload = JSON.stringify({
+  const endpoint = url + '/authn/login';
+  const payload = JSON.stringify({
       'tenant': tenantId,
       'username': user,
       'password': password
   });
-  let options = {
+  const options = {
     'method': 'post',
     'contentType': 'application/json',
     'payload': payload,
@@ -754,9 +761,9 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   }
 
   if (httpCode < 300) {
-    let response_headers = response.getHeaders();
+    const response_headers = response.getHeaders();
     if ('x-okapi-token' in response_headers) {
-      let token = response_headers['x-okapi-token'];
+      const token = response_headers['x-okapi-token'];
       const props = PropertiesService.getUserProperties();
       props.setProperty('boffo_folio_api_token', token);
       log('got token from Folio and saved it');
@@ -775,13 +782,13 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
     }
 
   } else if (httpCode < 500) {
-    let responseContent = response.getContentText();
-    let folioMsg = responseContent;
+    const responseContent = response.getContentText();
+    const folioMsg = responseContent;
     if (nonempty(responseContent) && responseContent.startsWith('{')) {
-      let results = JSON.parse(response.getContentText());
+      const results = JSON.parse(response.getContentText());
       folioMsg = results.errors[0].message;
     }
-    let question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
+    const question = `FOLIO rejected the request: ${folioMsg}. Try again?`;
     const ui = SpreadsheetApp.getUi();
     if (ui.alert(question, ui.ButtonSet.YES_NO) == ui.Button.YES) {
       // Recursive call.
@@ -834,8 +841,8 @@ function haveValidToken() {
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
   // The only way to check the token is to try to make an API call.
-  let endpoint = folioUrl + '/instance-statuses?limit=0';
-  let options = {
+  const endpoint = folioUrl + '/instance-statuses?limit=0';
+  const options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
@@ -846,8 +853,8 @@ function haveValidToken() {
   };
   
   log(`testing if token is valid by doing HTTP get on ${endpoint}`);
-  let response = UrlFetchApp.fetch(endpoint, options);
-  let httpCode = response.getResponseCode();
+  const response = UrlFetchApp.fetch(endpoint, options);
+  const httpCode = response.getResponseCode();
   log(`got code ${httpCode}; token ${httpCode < 400 ? "is" : "is not"} valid`);
   return httpCode < 400;
 }
@@ -923,7 +930,7 @@ function getStoredCredentials() {
  * response.
  */
 function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
-  let base_options = {
+  const base_options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
@@ -933,7 +940,7 @@ function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
     'escaping': false,
     'muteHttpExceptions': true
   };
-  let options = {...base_options, ...extra_options};
+  const options = {...base_options, ...extra_options};
   let response;
   let httpCode;
 
@@ -956,10 +963,7 @@ function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
     note('Stopping due to error.', 0.1);
     switch (httpCode) {
     case 400:
-      quit('Stopped due to an error in Boffo',
-           'A bug in Boffo resulted in a malformed API call to FOLIO.' +
-           ' Please report this to the developers. (Error code' +
-           ` ${httpCode}.)`);
+      quit('A bug in Boffo resulted in a malformed API call to FOLIO.');
       break;
     case 401:
     case 403:
@@ -1005,10 +1009,10 @@ function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
 /**
  * Returns an array of barcodes based on the user's selection from the sheet.
  */
-function barcodesFromSelection(required = false) {
+function getBarcodesFromSelection(required = false) {
   // Get array of values from spreadsheet. The list we get back is a list of
   // single-item lists, so we also flatten it.
-  let selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
+  const selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
   let barcodes = selection.getActiveRange().getDisplayValues().flat();
 
   // Filter out strings that don't look like barcodes.
@@ -1016,7 +1020,8 @@ function barcodesFromSelection(required = false) {
   if (barcodes.length < 1 && required) {
     // Either the selection was empty, or filtering removed everything.
     const ui = SpreadsheetApp.getUi();
-    ui.alert('Boffo', 'Please select cells with item barcodes.', ui.ButtonSet.OK);
+    ui.alert('Boffo', 'Please select cells containing item barcodes.',
+             ui.ButtonSet.OK);
   }
   log(`the user's selection contains ${barcodes.length} barcodes`);
   return barcodes;
@@ -1025,15 +1030,15 @@ function barcodesFromSelection(required = false) {
 /**
  * Returns the number of columns needed to hold the fields fetched from FOLIO.
  */
-function numColumns() {
+function getNumColumnsForSelectedFields() {
   return fields.filter(f => f.enabled).length;
 }
 
 /**
  * Returns the spreadsheet column letter corresponding to the last column.
  */
-function lastColumnLetter() {
-  let lastColIndex = numColumns() - 1;
+function getLastColumnLetter() {
+  const lastColIndex = getNumColumnsForSelectedFields() - 1;
   if (lastColIndex >= 26) {
     return 'A' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex - 26);
   } else {
@@ -1046,9 +1051,9 @@ function lastColumnLetter() {
  * and, if necessary, appending an integer that is incremented until the name
  * is unique.
  */
-function uniqueSheetName(baseName = 'Item Data') {
-  let sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
-  let names = sheets.map(sheet => sheet.getName());
+function makeUniqueSheetName(baseName = 'Item Data') {
+  const sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  const names = sheets.map(sheet => sheet.getName());
 
   // Compare candidate name against existing sheet names & increment counter
   // until we no longer get a match against any existing name.
@@ -1072,11 +1077,11 @@ function getBoffoMetadata() {
   // voilà, we can read it using HtmlService and parse the content as JSON.
 
   let codemetaFile = {};
-  let errorText = 'This installation of Boffo has been damaged somehow:' +
+  const errorText = 'This installation of Boffo has been damaged somehow:' +
       ' either some files are missing from the installation or one or' +
       ' more files are not in the expected format. Please report this' +
       ' error to the developers.';
-  let errorThrown = new Error('Unable to continue.');
+  const errorThrown = new Error('Unable to continue.');
 
   try {  
     codemetaFile = HtmlService.createHtmlOutputFromFile('codemeta-symlink.html');
