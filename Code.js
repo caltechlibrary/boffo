@@ -445,23 +445,42 @@ function getVerifiedCN(cn, locationId) {
 }
 
 /**
- * Searches by call number and returns a list of item records found.
+ * Searches by call number and returns a list of up to 100 item records
+ * found. (Note that this list may not be complete, if there are more
+ * than 100 items with this call number at that location.)
  */
 function getItemsForCN(cn, locationId) {
+  // The max number that I can retrieve from our Folio server is 100 and
+  // attempting to get more results in an error. For current purposes,
+  // that should be enough (the current caller of this function only
+  // uses the 1st item on the list anyway), but nevertheless, there may
+  // be unknown implications of hitting the limit, so elsewhere in this
+  // function, the number of results is also tested against this constant.
+  const maxItemCount = 100;
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
   function fetchJSONbyCN(thisCN) {
     const baseUrl = `${folioUrl}/inventory/items`;
-    const query = '?limit=100&query=' +
+    const query = `?limit=${maxItemCount}&query=` +
           encodeURI(`effectiveLocationId==${locationId} AND ` +
                     `effectiveCallNumberComponents.callNumber=="${thisCN}"`);
     const endpoint = baseUrl + query;
     return fetchJSON(endpoint, tenantId, token);
   }
 
+  function quitWithLimitError() {
+    quit('Internal limit exceeded for retrieval by call number',
+         'A value returned from an API call unexpectedly exceeded a' +
+         ' built-in maximum in Boffo. This indicates Boffo needs to' +
+         ' be revised in order to handle the situation differently.' +
+         ' Please report this error to the developers.');
+  }
+
   let results = fetchJSONbyCN(cn);
   log(`got ${results.totalRecords} records`);
-  if (results.totalRecords > 0) {
+  if (results.totalRecords > maxItemCount) {
+    quitWithLimitError();
+  } else if (results.totalRecords > 0) {
     return results.items;
   } else {
     // We didn't find the call number as given. This can happen if the user
@@ -469,10 +488,12 @@ function getItemsForCN(cn, locationId) {
     // exact text of the call number in the Folio database is different from
     // the expected text. We try again using different likely variations.
     log(`initial call number ${cn} not found; trying alternatives`);
-    for (const candidate of getCandidateCNs(cn)) {
+    for (const candidate of makeCallNumberVariations(cn)) {
       results = fetchJSONbyCN(candidate);
       log(`searching for ${candidate} produced ${results.totalRecords} items`);
-      if (results.totalRecords > 0) {
+      if (results.totalRecords > maxItemCount) {
+        quitWithLimitError();
+      } else if (results.totalRecords > 0) {
         return results.items;
       }
     }
@@ -523,7 +544,7 @@ function getItemsForCN(cn, locationId) {
  *   DT423.E26 9th.ed. 2012      -> DT423.E26 9th.ed. 2012
  *                                  DT423.E26 9th .ed. 2012
  */
-function getCandidateCNs(givenCN) {
+function makeCallNumberVariations(givenCN) {
   let cn = givenCN;
 
   // Remove any space between the initial letter(s) and the first number.
@@ -546,7 +567,8 @@ function getCandidateCNs(givenCN) {
          ` at least one digit, but the given value "${givenCN}" does not.`);
   }
 
-  // FIXME this does not produce all possible combinations.
+  // FIXME this does not produce all possible combinations. Need to revise
+  // the code below, probably to use a recursive approach.
 
   // Look at what follows the class number. If there are substrings that have
   // the form of a dot followed by a letter, use that to create variations.
