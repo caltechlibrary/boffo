@@ -175,11 +175,8 @@ function lookUpBarcodes() {
   let resultsSheet = createResultsSheet(numBarcodes, headings);
   let lastLetter = lastColumnLetter();
 
-  // Get these values here instead of doing property lookups in the loop.
-  const props = PropertiesService.getUserProperties();
-  const url   = props.getProperty('boffo_folio_url');
-  const id    = props.getProperty('boffo_folio_tenant_id');
-  const token = props.getProperty('boffo_folio_api_token');
+  // Get these values here instead of doing property lookups in the next loop.
+  const {folioUrl, tenantId, token} = getStoredCredentials();
 
   // Each barcode lookup will consist of a CQL query of the form "barcode==N"
   // separated by "OR" with percent-encoded space characters around it. E.g.:
@@ -195,7 +192,7 @@ function lookUpBarcodes() {
   barcodeBatches.forEach((batch, index) => {
     log(`working on rows starting with ${row}`);
     let cellValues = [];
-    let records = itemRecords(batch, url, id, token);
+    let records = itemRecords(batch, folioUrl, tenantId, token);
     if (records.length == 0) {
       log('received no records for this batch');
       cellValues = batch.map(barcode => [barcode, ...emptyValues]);
@@ -226,14 +223,14 @@ function lookUpBarcodes() {
 /**
  * Returns the FOLIO item data for a list of barcodes.
  */
-function itemRecords(barcodes, folio_url, tenant_id, token) {
+function itemRecords(barcodes, folioUrl, tenantId, token) {
   let barcodeTerms = barcodes.join('%20OR%20barcode==');
-  let baseUrl = `${folio_url}/inventory/items`;
+  let baseUrl = `${folioUrl}/inventory/items`;
   // If there's only 1 barcode, barcodeTerms will be just that one. If > 1,
   // barcodeTerms will be "35047019076454%20OR%20barcode==35047019076453" etc
   let query = `?limit=${barcodes.length}&query=barcode==${barcodeTerms}`;
   let endpoint = baseUrl + query;
-  let result = fetchJSON(endpoint, tenant_id, token);
+  let result = fetchJSON(endpoint, tenantId, token);
   log(`Folio returned ${result.totalRecords} records`);
   if (result.totalRecords > 0) {
     // We want the items returned in the order requested, but if a barcode
@@ -329,14 +326,10 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
  *     {name: 'the name', id: 'the uuid string'}
  */
 function getLocationsList() {
-  const props     = PropertiesService.getUserProperties();
-  const folio_url = props.getProperty('boffo_folio_url');
-  const tenant_id = props.getProperty('boffo_folio_tenant_id');
-  const token     = props.getProperty('boffo_folio_api_token');
-
+  const {folioUrl, tenantId, token} = getStoredCredentials();
   // 5000 is simply a high enough number to get the complete list.
-  let endpoint = `${folio_url}/locations?limit=5000`;
-  let results = fetchJSON(endpoint, tenant_id, token);
+  let endpoint = `${folioUrl}/locations?limit=5000`;
+  let results = fetchJSON(endpoint, tenantId, token);
   if (! 'locations' in results) {
     log('failed to get locations from FOLIO server');
     quit('Unable to get list of locations from server',
@@ -364,21 +357,17 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   firstCN = verifiedCN(firstCN, locationId);
   lastCN  = verifiedCN(lastCN, locationId);
 
-  const props     = PropertiesService.getUserProperties();
-  const folio_url = props.getProperty('boffo_folio_url');
-  const tenant_id = props.getProperty('boffo_folio_tenant_id');
-  const token     = props.getProperty('boffo_folio_api_token');
-
-  const baseUrl = `${folio_url}/inventory/items`;
+  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const baseUrl = `${folioUrl}/inventory/items`;
   let endpoint = baseUrl + callNumberRangeQuery(firstCN, lastCN, locationId);
-  let results = fetchJSON(endpoint, tenant_id, token);
+  let results = fetchJSON(endpoint, tenantId, token);
   // If we get nothing, flip the order of the call numbers & try again.
   if (results.totalRecords > 0) {
     log(`got ${results.totalRecords} records for ${firstCN} -- ${lastCN}`);
   } else {
     log(`swapping the order of the call numbers and trying one more time`);
     endpoint = baseUrl + callNumberRangeQuery(lastCN, firstCN, locationId);
-    results = fetchJSON(endpoint, tenant_id, token);
+    results = fetchJSON(endpoint, tenantId, token);
     log(`got ${results.totalRecords} records for ${lastCN} -- ${firstCN}`);
   }
   // If we still have nothing, quit.
@@ -454,17 +443,14 @@ function verifiedCN(cn, locationId) {
  * Searches by call number and returns a list of item records found.
  */
 function itemsForCN(cn) {
-  const props     = PropertiesService.getUserProperties();
-  const folio_url = props.getProperty('boffo_folio_url');
-  const tenant_id = props.getProperty('boffo_folio_tenant_id');
-  const token     = props.getProperty('boffo_folio_api_token');
+  const {folioUrl, tenantId, token} = getStoredCredentials();
 
   function fetchJSONbyCN(thisCN) {
-    const baseUrl = `${folio_url}/inventory/items`;
+    const baseUrl = `${folioUrl}/inventory/items`;
     const encodedCN = encodeURI(`"${thisCN}"`);
     const query = `?query=effectiveCallNumberComponents.callNumber==${encodedCN}`;
     const endpoint = baseUrl + query;
-    return fetchJSON(endpoint, tenant_id, token);
+    return fetchJSON(endpoint, tenantId, token);
   }
 
   let results = fetchJSONbyCN(cn);
@@ -845,18 +831,15 @@ function callBoffoFunction(name) {
  * Note: not currently used. Kept in case it's needed in the future.
  */
 function haveValidToken() {
-  const props = PropertiesService.getUserProperties();
-  let url   = props.getProperty('boffo_folio_url');
-  let id    = props.getProperty('boffo_folio_tenant_id');
-  let token = props.getProperty('boffo_folio_api_token');
+  const {folioUrl, tenantId, token} = getStoredCredentials();
 
   // The only way to check the token is to try to make an API call.
-  let endpoint = url + '/instance-statuses?limit=0';
+  let endpoint = folioUrl + '/instance-statuses?limit=0';
   let options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
-      'x-okapi-tenant': id,
+      'x-okapi-tenant': tenantId,
       'x-okapi-token': token
     },
     'muteHttpExceptions': true
@@ -925,15 +908,26 @@ function getProp(prop) {
 // ............................................................................
 
 /**
+ * Returns multiple values needed by our calls to FOLIO. The values returned
+ * are named folioUrl, tenantId, and token.
+ */
+function getStoredCredentials() {
+  const props = PropertiesService.getUserProperties();
+  return {folioUrl: props.getProperty('boffo_folio_url'),
+          tenantId: props.getProperty('boffo_folio_tenant_id'),
+          token:    props.getProperty('boffo_folio_api_token')};
+}
+
+/**
  * Does an HTTP call, checks for errors, and either quits or returns the
  * response.
  */
-function fetchJSON(endpoint, tenant_id, token, extra_options = {}) {
+function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
   let base_options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
-      'x-okapi-tenant': tenant_id,
+      'x-okapi-tenant': tenantId,
       'x-okapi-token': token
     },
     'escaping': false,
