@@ -334,7 +334,7 @@ function getLocationsList() {
   // 5000 is simply a high enough number to get the complete list.
   const endpoint = `${folioUrl}/locations?limit=5000`;
   const results = fetchJSON(endpoint, tenantId, token);
-  if (! 'locations' in results) {
+  if (! ('locations' in results)) {
     log('failed to get locations from FOLIO server');
     quit('Unable to get list of locations from server',
          'The request for a list of locations from the FOLIO server failed.' +
@@ -343,7 +343,7 @@ function getLocationsList() {
          ' please report it to the developers.');
   }
   const locationsList = results.locations.map(el => {
-    return {name: el['name'], id: el['id']};
+    return {name: el.name, id: el.id};
   });
   return locationsList.sort((location1, location2) => {
     return location1.name.localeCompare(location2.name);
@@ -604,7 +604,7 @@ function makeCallNumberVariations(givenCN) {
   let candidates = [];
   let match;
   const dotLetterRe = /\.[A-Z][0-9]+[^a-z0-9]/ig;
-  while (match = dotLetterRe.exec(cn)) {
+  while ((match = dotLetterRe.exec(cn))) {
     let index = match.index;
     let front = match.input.slice(0, index).trim();
     let tail  = match.input.slice(index).trim();
@@ -834,7 +834,7 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
 
   } else if (httpCode < 500) {
     const responseContent = response.getContentText();
-    const folioMsg = responseContent;
+    let folioMsg = responseContent;
     if (nonempty(responseContent) && responseContent.startsWith('{')) {
       const results = JSON.parse(response.getContentText());
       folioMsg = results.errors[0].message;
@@ -980,8 +980,8 @@ function getStoredCredentials() {
  * Does an HTTP call, checks for errors, and either quits or returns the
  * response.
  */
-function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
-  const base_options = {
+function fetchJSON(endpoint, tenantId, token) {
+  const options = {
     'method': 'get',
     'contentType': 'application/json',
     'headers': {
@@ -991,12 +991,11 @@ function fetchJSON(endpoint, tenantId, token, extra_options = {}) {
     'escaping': false,
     'muteHttpExceptions': true
   };
-  const options = {...base_options, ...extra_options};
   let response;
   let httpCode;
 
   try {
-    log(`doing HTTP ${options['method']} on ${endpoint}`);
+    log(`doing HTTP ${options.method} on ${endpoint}`);
     response = UrlFetchApp.fetch(endpoint, options);
     httpCode = response.getResponseCode();
     log(`got HTTP response code ${httpCode}`);
