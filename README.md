@@ -1,6 +1,6 @@
 # Boffo<img width="12%" align="right" src=".graphics/boffo-icon.png">
 
-Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items given a list of barcodes.
+Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items.
 
 [![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/boffo/LICENSE)
 [![made-with-javascript](https://img.shields.io/badge/Made%20with-JavaScript-yellow.svg?style=flat-square)](https://www.javascript.com)
@@ -24,7 +24,7 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getti
 
 ## Introduction
 
-Boffo (a loose acronym of _**B**arc**o**des **f**rom **FO**LIO_, and pronounced like [the noun](https://en.wiktionary.org/wiki/boffo)) is an add-on for [Google Sheets](https://www.google.com/sheets/about/). It lets you select item barcodes in a spreadsheet and retrieve information about the [item records](https://caltechlibrary.github.io/boffo/glossary) from a [FOLIO](https://folio.org) server.
+Boffo (a loose acronym of _**B**arc**o**des **f**rom **FO**LIO_, and pronounced like [the noun](https://en.wiktionary.org/wiki/boffo)) is an add-on for [Google Sheets](https://www.google.com/sheets/about/). Among other things, it lets you select item barcodes in a spreadsheet and retrieve information about the [item records](https://caltechlibrary.github.io/boffo/glossary) from a [FOLIO](https://folio.org) server.
 
 ## Installation
 
