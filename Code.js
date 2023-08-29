@@ -175,7 +175,7 @@ function lookUpBarcodes() {
   const resultsSheet = createResultsSheet(numBarcodes, headings);
   const lastLetter = getLastColumnLetter();
 
-  // Get these values here instead of doing property lookups in the next loop.
+  // Get these now to avoid repeatedly doing property lookups in the next loop.
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
   // Each barcode lookup will consist of a CQL query of the form "barcode==N"
@@ -358,29 +358,64 @@ function getLocationsList() {
 function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   note('Looking up call numbers …');
 
+  // First make sure the given CNs are valid.
   firstCN = getVerifiedCN(firstCN, locationId);
   lastCN  = getVerifiedCN(lastCN, locationId);
 
+  // If we get this far, we have valid CNs. Let's saddle up and do this thing.
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
-  let endpoint = baseUrl + makeRangeQuery(firstCN, lastCN, locationId);
-  let results = fetchJSON(endpoint, tenantId, token);
-  // If we get nothing, flip the order of the call numbers & try again.
-  if (results.totalRecords > 0) {
-    log(`got ${results.totalRecords} records for ${firstCN} -- ${lastCN}`);
+
+  function makeRangeQuery(cn1, cn2, numRecordsToGet = 100, offset = 0) {
+    // 100 is the max that the Folio API will return for this query.
+    return baseUrl + `?limit=${numRecordsToGet}&offset=${offset}&query=` +
+      encodeURI(`effectiveLocationId==${locationId} AND ` +
+                `effectiveCallNumberComponents.callNumber>="${cn1}" AND ` +
+                `effectiveCallNumberComponents.callNumber<="${cn2}"`);
+  }
+
+  // The user may have flipped the order of the CNs. Check & swap them if so.
+  let endpoint = makeRangeQuery(firstCN, lastCN, 0);
+  let expected = fetchJSON(endpoint, tenantId, token);
+  if (expected.totalRecords > 0) {
+    log(`range ${firstCN} -- ${lastCN} has ${expected.totalRecords} records`);
   } else {
     log(`swapping the order of the call numbers and trying one more time`);
-    endpoint = baseUrl + makeRangeQuery(lastCN, firstCN, locationId);
-    results = fetchJSON(endpoint, tenantId, token);
-    log(`got ${results.totalRecords} records for ${lastCN} -- ${firstCN}`);
+    [firstCN, lastCN] = [lastCN, firstCN];
+    endpoint = makeRangeQuery(firstCN, lastCN, 0);
+    expected = fetchJSON(endpoint, tenantId, token);
+    if (expected.totalRecords == 0) {
+      // Get the location name so we can write it in the error message.
+      const locName = getLocationsList().find(el => (el.id == locationId)).name;
+      quit('No results for given call number range and location',
+           `Searching FOLIO for the call number range ${firstCN} – ${lastCN}` +
+           ` (in either order) at location "${locName}" produced no results.` +
+           ' Please verify the call numbers (paying special attention to any' +
+           ' space characters) as well as the location. If everything looks'  +
+           ' correct, it is possible a temporary network glitch occurred; in' +
+           ' that case, please wait a few seconds and try again. If the' +
+           ' problem persists, please report it to the developers.');
+    }
   }
-  // If we still have nothing, quit.
-  if (results.totalRecords == 0) {
-    // Get the location name so we can write it in the error message.
-    const locName = getLocationsList().find(el => (el.id == locationId)).name;
-    quit('No results for given call number range and location',
-         `Searching FOLIO for the call number range ${firstCN} -- ${lastCN}` +
-         ` (in either order) at location "${locName}" produced no results.`);
+
+  // Now we get the records for real. Do it in batches of 100.
+  let records = [];
+  let results;
+  log(`getting ${expected.totalRecords} item records`);
+  for (let offset = 0; offset < expected.totalRecords; offset += 100) {
+    endpoint = makeRangeQuery(firstCN, lastCN, 100, offset);
+    results = fetchJSON(endpoint, tenantId, token);
+    if (results.items) {
+      records = records.concat(results.items);
+    } else {
+      log(`unexpectedly got an empty batch during iteration`);
+      quit('Failed to get complete set of records',
+           `While downloading the item records for ${firstCN} – ${lastCN},` +
+           ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
+           ' be due to a temporary network glitch, or it may be a symptom'  +
+           ' of a deeper problem. Please wait a few seconds and try again.' +
+           ' If the problem persists, please report it to the developers.');
+    }
   }
 
   note('Done ✨');
@@ -390,15 +425,15 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   setFieldEnabled('Call number', true);
   const enabledFields = fields.filter(f => f.enabled);
   const headings = enabledFields.map(f => f.name);
-  const resultsSheet = createResultsSheet(results.totalRecords, headings);
+  const resultsSheet = createResultsSheet(records.length, headings);
   const lastLetter = getLastColumnLetter();
 
   log('writing results to sheet');
   let cellValues = [];
-  results.items.forEach((record) => {
+  records.forEach((record) => {
     cellValues.push(enabledFields.map(f => f.getValue(record)));
   });
-  let cells = resultsSheet.getRange(2, 1, results.totalRecords, enabledFields.length);
+  let cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
   return true;
 }
@@ -406,12 +441,6 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
 /**
  * Returns a query string to get items for a range of call numbers.
  */
-function makeRangeQuery(firstCN, lastCN, locationId) {
-  return '?limit=100&query=' +
-    encodeURI(`effectiveLocationId==${locationId} AND ` +
-              `effectiveCallNumberComponents.callNumber>="${firstCN}" AND ` +
-              `effectiveCallNumberComponents.callNumber<="${lastCN}"`);
-}
 
 /**
  * Returns the effectiveCallNumberComponents.callNumber value of an item
@@ -436,10 +465,10 @@ function getVerifiedCN(cn, locationId) {
          ` "${locName}" for the call number as written. Please verify` +
          ` that "${cn}" is correct (paying special attention to space` +
          ' characters) and that the location is the correct one, then' +
-         ' try the command again.  If you are certain the call number' +
-         " exists, it's possible a temporary network glitch occurred;" +
-         ' in that case, please wait a few seconds and try again.  If' +
-         ' the problem persists, please report it to the developers.');
+         ' try the command again. If everything looks correct, it is'  +
+         " possible that a temporary network glitch occurred; in that" +
+         ' case, please wait a few seconds and try again. If the' +
+         ' problem persists, please report it to the developers.');
     return '';
   }
 }
