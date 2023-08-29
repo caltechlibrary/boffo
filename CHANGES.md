@@ -1,5 +1,10 @@
 # Change log for Boffo
 
+## Version 1.5.0
+
+This version introduces a new command: _Find items in call number range_. When invoked from the Boffo menus, it asks the user for starting and ending call numbers at a location, searches Folio for the range of items in the range of those call numbers, and writes the output to a new sheet in the spreadsheet.
+
+
 ## Version 1.4.0
 
 This version introduces a new menu option, _Select record fields to show_, allowing the user to select which data fields are shown for item records retrieved from FOLIO.
