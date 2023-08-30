@@ -417,8 +417,10 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
            ' If the problem persists, please report it to the developers.');
     }
   }
+  records.sort((r1, r2) => {
+    return r1.effectiveShelvingOrder.localeCompare(r2.effectiveShelvingOrder);
+  });
 
-  note('Done ✨');
   // Create a new sheet where results will be written.
   restoreFieldSelections();
   // Make sure Call number is shown in the results.
@@ -435,6 +437,8 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   });
   let cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
+
+  note('Done ✨');
   return true;
 }
 
@@ -1144,12 +1148,12 @@ function getBoffoMetadata() {
 function note(message, duration = 2) {
   try {
     SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Boffo', duration);
-    log('Displayed note to user: ' + message);
+    log('displayed note to user: ' + message);
   } catch ({name, error}) {
     // I've seen "Exception: Service unavailable: Spreadsheets" errors on
     // occasion. In the present context, it's not worth doing more than
     // simply ignoring our inability to write a toast message.
-    log(`Got exception ("${error}") trying to display a note to user. The` +
+    log(`got exception ("${error}") trying to display a note to user. The` +
         ` note will not be shown. It would have been: "${message}"`);
   }
 }
