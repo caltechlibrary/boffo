@@ -1004,13 +1004,13 @@ function fetchJSON(endpoint, tenantId, token) {
       break;
     case 401:
     case 403:
-      quit('Stopped due to a permissions error',
-           'A FOLIO authentication error occurred. This can be' +
-           ' due to an invalid FOLIO URL, tenant ID, or token,' +
+      quit('Stopped due to an authentication error',
+           'The FOLIO server rejected the request. This can be' +
+           ' due to an invalid token, FOLIO URL, or tenant ID,' +
            ' or if the user account lacks FOLIO permissions to' +
            ' perform the action requested. To fix this, try to' +
-           ' reset the FOLIO credentials (using the Boffo menu' +
-           ' option for that).  If this error persists, please' +
+           ' set the FOLIO user credentials via the Boffo menu' +
+           ' option for that.  If this error persists, please'  +
            ' contact your FOLIO administrator for assistance.');
       break;
     case 404:
@@ -1024,11 +1024,11 @@ function fetchJSON(endpoint, tenantId, token) {
     case 409:
     case 500:
     case 501:
-      quit('Stopped due to a server error',
-           'FOLIO turned an internal server error. This may be due' +
-           ' to a temporary problem with FOLIO itself. Please wait' +
-           ' a moment, then retry the same operation. If the error' +
-           ' persists, please report it to the developers.' +
+      quit('Stopped due to a FOLIO server error',
+           'This may be due to a temporary network problem or a' +
+           ' temporary problem with the FOLIO server. Please wait' +
+           ' for a few seconds, then retry the same operation. If' +
+           ' the error persists, please report it to the developers.' +
            ` (Error code ${httpCode}.)`);
       break;
     default:
