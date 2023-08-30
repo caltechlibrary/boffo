@@ -319,7 +319,7 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
   htmlTemplate.locationSelectorsList = locationsList.map(el => {
     return `<option value="${el.id}" class="wide">${el.name}</option>`;
   }).join('');
-  const htmlContent = htmlTemplate.evaluate().setWidth(470).setHeight(280);
+  const htmlContent = htmlTemplate.evaluate().setWidth(470).setHeight(290);
   log('showing dialog to get call number range');
   SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Call number range');
 }
@@ -934,7 +934,7 @@ function menuItemShowAbout() {
   // Setting the next variable on the template makes it available in the
   // script code embedded in the HTML source of about.html.
   htmlTemplate.boffo = getBoffoMetadata();
-  const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(200);
+  const htmlContent = htmlTemplate.evaluate().setWidth(250).setHeight(220);
   SpreadsheetApp.getUi().showModalDialog(htmlContent, 'About Boffo');
 }
 
