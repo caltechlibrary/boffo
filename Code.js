@@ -85,9 +85,6 @@ const fields = [
   new Field('Year caption',                   false, false, item => item.yearCaption.join(', '))
 ];
 
-// Regexp for testing that a string looks like a valid Caltech Library barcode.
-const barcodePattern = new RegExp('350\\d+|\\d{1,3}|nobarcode\\d+|temp-\\w+|tmp-\\w+|SFL-\\w+', 'i');
-
 
 // Google Sheets add-on menu definition.
 // ............................................................................
@@ -1055,8 +1052,10 @@ function getBarcodesFromSelection(required = false) {
   const selection = SpreadsheetApp.getActiveSpreadsheet().getSelection();
   let barcodes = selection.getActiveRange().getDisplayValues().flat();
 
-  // Filter out strings that don't look like barcodes.
-  barcodes = barcodes.filter(x => barcodePattern.test(x));
+  // Filter out strings that don't look like barcodes. Due to the range of
+  // values that could count as a barcode, the rule is to simply ignore
+  // any cells that don't contain at least one number.
+  barcodes = barcodes.filter(x => /\d/.test(x));
   if (barcodes.length < 1 && required) {
     // Either the selection was empty, or filtering removed everything.
     const ui = SpreadsheetApp.getUi();
