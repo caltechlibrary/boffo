@@ -452,7 +452,7 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
  * is picked at random.
  */
 function getVerifiedCN(cn, locationId) {
-  const items = getItemsForCN(cn, locationId);
+  const items = getSampleItemsForCN(cn, locationId);
   if (items.length > 0) {
     // Found at least one item for the given CN + location. Return 1st value.
     return items[0].effectiveCallNumberComponents.callNumber;
@@ -475,41 +475,29 @@ function getVerifiedCN(cn, locationId) {
 
 /**
  * Searches by call number and returns a list of up to 100 item records
- * found. (Note that this list may not be complete, if there are more
- * than 100 items with this call number at that location.)
+ * found.
+ *
+ * Note that this list may not be complete, if there are more than 100 items
+ * with this call number at that location. The max number that can be
+ * retrieved at one time via API from our Folio server is 100. We can get
+ * more by using multiple API calls, but the purpose of this function is
+ * to establish that the call number exists, not to get the full results.
  */
-function getItemsForCN(cn, locationId) {
-  // The max number that I can retrieve from our Folio server is 100 and
-  // attempting to get more results in an error. For current purposes,
-  // that should be enough (the current caller of this function only
-  // uses the 1st item on the list anyway), but nevertheless, there may
-  // be unknown implications of hitting the limit, so elsewhere in this
-  // function, the number of results is also tested against this constant.
-  const maxItemCount = 100;
+function getSampleItemsForCN(cn, locationId) {
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
   function fetchJSONbyCN(thisCN) {
     const baseUrl = `${folioUrl}/inventory/items`;
-    const query = `?limit=${maxItemCount}&query=` +
+    const query = `?limit=100&query=` +
           encodeURI(`effectiveLocationId==${locationId} AND ` +
                     `effectiveCallNumberComponents.callNumber=="${thisCN}"`);
     const endpoint = baseUrl + query;
     return fetchJSON(endpoint, tenantId, token);
   }
 
-  function quitWithLimitError() {
-    quit('Internal limit exceeded for retrieval by call number',
-         'A value returned from an API call unexpectedly exceeded a' +
-         ' built-in maximum in Boffo. This indicates Boffo needs to' +
-         ' be revised in order to handle the situation differently.' +
-         ' Please report this error to the developers.');
-  }
-
   let results = fetchJSONbyCN(cn);
   log(`got ${results.totalRecords} records`);
-  if (results.totalRecords > maxItemCount) {
-    quitWithLimitError();
-  } else if (results.totalRecords > 0) {
+  if (results.totalRecords > 0) {
     return results.items;
   } else {
     // We didn't find the call number as given. This can happen if the user
@@ -520,9 +508,7 @@ function getItemsForCN(cn, locationId) {
     for (const candidate of makeCallNumberVariations(cn)) {
       results = fetchJSONbyCN(candidate);
       log(`searching for ${candidate} produced ${results.totalRecords} items`);
-      if (results.totalRecords > maxItemCount) {
-        quitWithLimitError();
-      } else if (results.totalRecords > 0) {
+      if (results.totalRecords > 0) {
         return results.items;
       }
     }
