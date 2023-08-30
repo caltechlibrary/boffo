@@ -1,5 +1,15 @@
 # Change log for Boffo
 
+## Version 1.6.0
+
+Changes in this version:
+* What counts as a "barcode" was previously too specific to the patterns of barcodes used at the Caltech Library. This is no longer the case, and Boffo now accepts anything that has at least one number in it.
+* The function _Find items in call number range_ will work even if the user enters the same call number in the call number range fields. The effect is to search for that single call number at the given location. This is useful in situations where a library files certain items always under the same call number (e.g., `THESIS`) and the items are distinguished on some other basis. With this change, a user can find all items with that call number at a given location.
+* The _Find items in call number range_ dialog will allow a limited kind of local call number. Specifically, it will recognize single words written in capitals and consisting of only letters. Examples: `THESIS`, `FILM`.
+* The values returned by _Find items in call number range_ were not being sorted. They are now sorted according to FOLIO's shelving order sort order.
+* The resizing/scaling behavior of dialog windows is hopefully improved. Previously, on different browser/OS combinations, some people were getting scroll bars inside the dialogs like the call number dialog.
+
+
 ## Version 1.5.0
 
 This version introduces a new command: _Find items in call number range_. When invoked from the Boffo menus, it asks the user for starting and ending call numbers at a location, searches Folio for the range of items in the range of those call numbers, and writes the output to a new sheet in the spreadsheet.
