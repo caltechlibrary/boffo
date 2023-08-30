@@ -83,7 +83,7 @@ This approach does not require the use of command-line tools, but it does requir
 
 1. (Optional, but recommended for your sanity.) Create a folder in your Google Drive where you will put the Boffo project files that will be created in the following steps. For the purposes of this documentation, let's assume that this folder is named "Boffo example".
 2. Go to the [public folder for Boffo in Google Drive](https://drive.google.com/drive/folders/1PJErJ2ggFqT5H7pQkYr0wrpnf6YorHc-?usp=share_link). It should look more or less like what is shown in the screenshot below.<p align="center"><img width="800px" src="_static/media/boffo-google-drive-folder.png"></p>
-3. Right-click over the apps script project named "Biff (public copy)" and select _Make a copy_ from the contextual menu that pops up.<p align="center"><img width="800px" src="_static/media/google-drive-make-copy.jpg"></p>
+3. Right-click over the apps script project named "Boffo (public copy)" and select _Make a copy_ from the contextual menu that pops up.<p align="center"><img width="800px" src="_static/media/google-drive-make-copy.jpg"></p>
 4. Go to the location where the copy ended up (usually the top level of your Google Drive) and look for the newly-created apps script project named "Copy of Boffo (public copy)". Right-click on it, and select _Move to_ from the contextual menu that pops-up.<p align="center"><img width="800px" src="_static/media/google-drive-move.png"></p>
 5. From the move dialog, select the destination (in this example, the folder named "Boffo example" suggested in step #1 above).<p align="center"><img width="800px" src="_static/media/google-drive-move-destination.png"></p>
 6. Navigate to the destination folder where you put it in your Google Drive.
