@@ -5,7 +5,7 @@
   "identifier": "boffo",
   "description": "Boffo (Barcodes from FOLIO) is a Google Apps script that looks up item barcodes in a FOLIO instance.",
   "version": "1.6.0",
-  "datePublished": "2023-08-29",
+  "datePublished": "2023-08-30",
   "dateCreated": "2023-06-08",
   "author": [
     {
