@@ -709,11 +709,11 @@ function getCredentials() {
  * of a Boffo function to be called after the credentials are successfully
  * used to create a FOLIO token.
  */
-function buildCredentialsDialog(callAfterSuccess = '', title) {
+function buildCredentialsDialog(callAfterSuccess, title) {
   log(`building form for Folio creds; callAfterSuccess = ${callAfterSuccess}`);
   const htmlTemplate = HtmlService.createTemplateFromFile('credentials-form');
   htmlTemplate.callAfterSuccess = callAfterSuccess;
-  htmlTemplate.title = title
+  htmlTemplate.title = title;
   return htmlTemplate.evaluate().setWidth(475).setHeight(350);
 }
 
