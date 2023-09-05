@@ -175,6 +175,11 @@ function lookUpBarcodes() {
   // Get these now to avoid repeatedly doing property lookups in the next loop.
   const {folioUrl, tenantId, token} = getStoredCredentials();
 
+  // If few barcodes were fetched, it happens too fast to bother printing this.
+  if (numBarcodes > 200) {
+    note(`Looking up ${numBarcodes} barcodes …`);
+  }
+
   // Each barcode lookup will consist of a CQL query of the form "barcode==N"
   // separated by "OR" with percent-encoded space characters around it. E.g.:
   //   barcode==35047019076454%20OR%20barcode==35047019076453
@@ -211,9 +216,9 @@ function lookUpBarcodes() {
   });
 
   log(`got total of ${total} records for ${numBarcodes} barcodes selected`);
-  // If few barcodes were fetched, it happens too fast to bother printing this.
-  if (numBarcodes > 100) {
-    note(`Finished looking up ${numBarcodes} barcodes ✨ `, 1);
+  SpreadsheetApp.setActiveSheet(resultsSheet);
+  if (numBarcodes > 200) {
+    note(`Writing results – this may take a little longer …`);
   }
 }
 
@@ -693,7 +698,7 @@ function menuItemGetCredentials() {
  * saves them if a token is successfully obtained.
  */
 function getCredentials() {
-  const dialog = buildCredentialsDialog();
+  const dialog = buildCredentialsDialog('', 'FOLIO credentials');
   log('showing dialog to get credentials');
   SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO credentials');
 }
@@ -704,26 +709,23 @@ function getCredentials() {
  * of a Boffo function to be called after the credentials are successfully
  * used to create a FOLIO token.
  */
-function buildCredentialsDialog(callAfterSuccess = '') {
+function buildCredentialsDialog(callAfterSuccess = '', title) {
   log(`building form for Folio creds; callAfterSuccess = ${callAfterSuccess}`);
   const htmlTemplate = HtmlService.createTemplateFromFile('credentials-form');
   htmlTemplate.callAfterSuccess = callAfterSuccess;
+  htmlTemplate.title = title
   return htmlTemplate.evaluate().setWidth(475).setHeight(350);
 }
 
 /**
- * Returns true if it looks like the necessary data to use the FOLIO API have
- * been stored. This does NOT verify that the credentials actually work;
- * doing so requires an API call, which takes time and slows down user
- * interaction. The approach taken in most functions in Boffo is to only
- * check that the necessary data has been set (by calling this function) and
- * let any exceptions occur at the time commands are executing.
+ * Returns multiple values needed by our calls to FOLIO. The values returned
+ * are named folioUrl, tenantId, and token.
  */
-function haveCredentials() {
+function getStoredCredentials() {
   const props = PropertiesService.getUserProperties();
-  return (nonempty(props.getProperty('boffo_folio_url')) &&
-          nonempty(props.getProperty('boffo_folio_tenant_id')) &&
-          nonempty(props.getProperty('boffo_folio_api_token')));
+  return {folioUrl: props.getProperty('boffo_folio_url'),
+          tenantId: props.getProperty('boffo_folio_tenant_id'),
+          token:    props.getProperty('boffo_folio_api_token')};
 }
 
 /**
@@ -737,13 +739,17 @@ function haveCredentials() {
  * desired function.
  */
 function withCredentials(funcToCall) {
-  if (haveCredentials()) {
+  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const haveCreds = nonempty(folioUrl) && nonempty(tenantId) && nonempty(token);
+  if (haveCreds && haveValidToken(folioUrl, tenantId, token)) {
     log(`have credentials; calling ${funcToCall.name}`);
     funcToCall();
   } else {
-    log(`need to get credentials before calling ${funcToCall.name}`);
-    const dialog = buildCredentialsDialog(funcToCall.name);
-    SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO information needed');
+    const what   = ((folioUrl && tenantId) ? 'update' : 'obtain');
+    const title  = `Boffo needs to ${what} FOLIO credentials`;
+    log(`need to ${what} credentials before calling ${funcToCall.name}`);
+    const dialog = buildCredentialsDialog(funcToCall.name, title);
+    SpreadsheetApp.getUi().showModalDialog(dialog, title);
   }
 }
 
@@ -873,11 +879,8 @@ function callBoffoFunction(name) {
 
 /**
  * Returns true if the user's stored token is valid, based on contacting FOLIO.
- * Note: not currently used. Kept in case it's needed in the future.
  */
-function haveValidToken() {
-  const {folioUrl, tenantId, token} = getStoredCredentials();
-
+function haveValidToken(folioUrl, tenantId, token) {
   // The only way to check the token is to try to make an API call.
   const endpoint = folioUrl + '/instance-statuses?limit=0';
   const options = {
@@ -895,6 +898,19 @@ function haveValidToken() {
   const httpCode = response.getResponseCode();
   log(`got code ${httpCode}; token ${httpCode < 400 ? "is" : "is not"} valid`);
   return httpCode < 400;
+}
+
+/**
+ * Returns true if it looks like the necessary data to use the FOLIO API have
+ * been stored. This does NOT verify that the credentials actually work;
+ * doing so requires an API call, which takes time and slows down user
+ * interaction.
+ */
+function haveCredentials() {
+  const props = PropertiesService.getUserProperties();
+  return (nonempty(props.getProperty('boffo_folio_url')) &&
+          nonempty(props.getProperty('boffo_folio_tenant_id')) &&
+          nonempty(props.getProperty('boffo_folio_api_token')));
 }
 
 
@@ -951,17 +967,6 @@ function getProp(prop) {
 
 // Miscellaneous helper functions.
 // ............................................................................
-
-/**
- * Returns multiple values needed by our calls to FOLIO. The values returned
- * are named folioUrl, tenantId, and token.
- */
-function getStoredCredentials() {
-  const props = PropertiesService.getUserProperties();
-  return {folioUrl: props.getProperty('boffo_folio_url'),
-          tenantId: props.getProperty('boffo_folio_tenant_id'),
-          token:    props.getProperty('boffo_folio_api_token')};
-}
 
 /**
  * Does an HTTP call, checks for errors, and either quits or returns the
