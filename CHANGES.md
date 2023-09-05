@@ -1,5 +1,12 @@
 # Change log for Boffo
 
+## Version 1.6.1
+
+Changes in this version:
+* Boffo failed to ask for credentials when tokens expired, and instead just reported an error. Fixed; it now checks the token and brings up the credentials dialog if a new token is needed.
+* Boffo prints a couple more messages while it's working, in case very large lookups take so long that the user is left wondering whether anything is happening.
+
+
 ## Version 1.6.0
 
 Changes in this version:
