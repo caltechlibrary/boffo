@@ -506,17 +506,35 @@ function getSampleItemsForCN(cn, locationId) {
   if (results.totalRecords > 0) {
     return results.items;
   } else {
-    // We didn't find the call number as given. This can happen if the user
-    // mistakenly split the call number in the wrong place(s), and/or the
-    // exact text of the call number in the Folio database is different from
-    // the expected text. We try again using different likely variations.
-    log(`initial call number ${cn} not found; trying alternatives`);
-    for (const candidate of makeCallNumberVariations(cn)) {
-      results = fetchJSONbyCN(candidate);
-      log(`searching for ${candidate} produced ${results.totalRecords} items`);
-      if (results.totalRecords > 0) {
-        return results.items;
+    // We didn't find the call number as given. This can happen for 2 reasons:
+    // a) There are no items with that call number at the given location.
+    // b) The c.n. is wrong somehow. E.g., if the user mistakenly split the
+    //    call number in the wrong place(s), and/or the exact text of the
+    //    call number in the database is itself incorrect (which can happen).
+    // Approach:
+    // 1) If the call number has whitespace and/or periods, we generate
+    //    variants based on splitting the c.n. in different places.
+    // 2) Otherwise, we have no more tricks to try for producing
+    //    alternative-split versions, so we give up.
+    if (/[ .]/.test(cn)) {
+      log(`initial call number ${cn} not found; trying alternatives`);
+      for (const candidate of makeCallNumberVariations(cn)) {
+        results = fetchJSONbyCN(candidate);
+        log(`searching for ${candidate} produced ${results.totalRecords} items`);
+        if (results.totalRecords > 0) {
+          return results.items;
+        }
       }
+    } else {
+      quit(`Call number not found`,
+           `Searching the FOLIO database for "${cn}" failed to produce a` +
+           ' result. This can happen for different reasons. Perhaps that' +
+           ' call number is invalid (e.g., having a space where one does' +
+           ' not belong), or perhaps there are no items with that number' +
+           ' at that location, or maybe a system glitch occurred. Please' +
+           " check the call number carefully. If it's correct and you're" +
+           ' certain it exists at that location, try to wait for a short' +
+           ' time and run the command again.');
     }
   }
   return [];
