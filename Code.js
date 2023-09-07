@@ -373,7 +373,8 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
     return baseUrl + `?limit=${numRecordsToGet}&offset=${offset}&query=` +
       encodeURI(`effectiveLocationId==${locationId} AND ` +
                 `effectiveCallNumberComponents.callNumber>="${cn1}" AND ` +
-                `effectiveCallNumberComponents.callNumber<="${cn2}"`);
+                `effectiveCallNumberComponents.callNumber<="${cn2}"` +
+                ` sortBy effectiveShelvingOrder`);
   }
 
   // The user may have flipped the order of the CNs. Check & swap them if so.
@@ -419,9 +420,6 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
            ' If the problem persists, please report it to the developers.');
     }
   }
-  records.sort((r1, r2) => {
-    return r1.effectiveShelvingOrder.localeCompare(r2.effectiveShelvingOrder);
-  });
 
   // Create a new sheet where results will be written.
   restoreFieldSelections();
@@ -496,7 +494,8 @@ function getSampleItemsForCN(cn, locationId) {
     const baseUrl = `${folioUrl}/inventory/items`;
     const query = `?limit=100&query=` +
           encodeURI(`effectiveLocationId==${locationId} AND ` +
-                    `effectiveCallNumberComponents.callNumber=="${thisCN}"`);
+                    `effectiveCallNumberComponents.callNumber=="${thisCN}"` +
+                    ` sortBy effectiveShelvingOrder`);
     const endpoint = baseUrl + query;
     return fetchJSON(endpoint, tenantId, token);
   }
