@@ -254,33 +254,6 @@ function itemRecords(barcodes, folioUrl, tenantId, token) {
 }
 
 /**
- * Creates the results sheet and returns it.
- */
-function createResultsSheet(numRows, headings) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(makeUniqueSheetName());
-
-  const numColumnsNeeded = getNumColumnsForSelectedFields();
-  if (sheet.getMaxColumns() < numColumnsNeeded) {
-    sheet.insertColumns(1, numColumnsNeeded - sheet.getMaxColumns());
-  }
-  sheet.setColumnWidths(1, numColumnsNeeded, 150);
-  sheet.setFrozenRows(1);
-
-  const cells = sheet.getRange(`A1:A${numRows + 1}`);
-  cells.setHorizontalAlignment('left');
-
-  const lastLetter = getLastColumnLetter();
-  const headerRow = sheet.getRange(`A1:${lastLetter}1`);
-  headerRow.setValues([headings]);
-  headerRow.setFontSize(10);
-  headerRow.setFontColor('white');
-  headerRow.setFontWeight('bold');
-  headerRow.setBackground('#999999');
-
-  return sheet;
-}
-
-/**
  * Takes an original list and returns a list of lists, where each sublist
  * contains sliceSize number of items from the original list.
  */
@@ -339,9 +312,10 @@ function getLocationsList() {
   const results = fetchJSON(endpoint, tenantId, token);
   if (! ('locations' in results)) {
     quit('Unable to get list of locations from server',
-         'The request for a list of locations from the FOLIO server failed.' +
-         ' This may be due to a temporary network glitch. Please wait a few' +
-         ' seconds, then retry the command again. If this problem persists,' +
+         'The request for a list of locations from FOLIO failed to return' +
+         ' a result. This may be due to a sudden network glitch or other'  +
+         ' failure, or it may indicate a deeper issue. Please wait a few'  +
+         ' seconds, then repeat the same command. If this error repeats,' +
          ' please report it to the developers.');
   }
   const locationsList = results.locations.map(location => {
@@ -355,9 +329,7 @@ function getLocationsList() {
 /**
  * Dispatches to other functions based on the current situation. This is
  * invoked from inside the HTML form "call-numbers-form.html" after getting
- * input from the user. If the user provided the same call number for first
- * and last values in the form, then this searches for a single call number
- * at the given location; otherwise, it does a proper range search.
+ * input from the user.
  */
 function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   note('Searching FOLIO …', 30);
@@ -371,30 +343,30 @@ function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
 }
 
 /**
- * Does the actual work of getting items for a single call number, for the
- * case where the user types the value for the first and last call number
- * in a range.
+ * Gets items for a single call number.
  */
 function showItemsForCallNumber(cn, locationId) {
   writeResultsSheet(getItemsForCN(cn, locationId));
 }
 
 /**
- * Does the actual work of performing a search on a call number range.
+ * Gets items for a call number range.
  */
 function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
   // A given c.n. may return multiple items. Start by getting sorted lists
-  // of items for each of the two call numbers given by the user.
-  const firstItemList = getItemsForCN(firstCN, locationId);
-  const lastItemList  = getItemsForCN(lastCN, locationId);
+  // of items for each of the two call numbers given by the user. Note the
+  // need to reverse the order in the 2nd list; this is because, if we have
+  // CN1 and CN2 producing lists [CN1item1, CN1item2, CN1item3] and [CN2item1,
+  // CN2item2, CN2item3], we want the range to be CN1item1 -> CN2item3.
+  let firstItemList = getItemsForCN(firstCN, locationId);
+  let lastItemList  = getItemsForCN(lastCN, locationId).reverse();
 
   // If we get this far, we have valid CNs. We use the effectiveShelvingOrder
   // to help figure out the boundaries of the range, because that's the only
   // version of the call number that will work for '>=' and '<=' searches in
   // FOLIO. However, there's a complication: in some records, the field is
   // empty. If this happens, we look in the item lists for other items with
-  // the same call number and use the first with an effectiveShelvingOrder
-  // value. If we can't find any, we give up.
+  // the same call number and use the first with an effectiveShelvingOrder.
   let firstESO = findItemWithEffectiveShelvingOrder(firstItemList, firstCN);
   let lastESO  = findItemWithEffectiveShelvingOrder(lastItemList, lastCN);
 
@@ -418,7 +390,10 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
     log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
   } else {
     log(`swapping the order of the call numbers and trying one more time`);
-    [firstESO, lastESO] = [lastESO, firstESO];
+    // Be careful about the fact that we reversed the order of lastItemList.
+    [firstItemList, lastItemList] = [lastItemList.reverse(), firstItemList.reverse()];
+    firstESO = findItemWithEffectiveShelvingOrder(firstItemList, lastCN);
+    lastESO  = findItemWithEffectiveShelvingOrder(lastItemList, firstCN);
     endpoint = makeRangeQuery(firstESO, lastESO);
     expected = fetchJSON(endpoint, tenantId, token);
     if (expected.totalRecords > 0) {
@@ -427,15 +402,18 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
       // Get the location name so we can write it in the error message.
       const locName = getLocationsList().find(el => (el.id == locationId)).name;
       quit('No results for given call number range and location',
-           `Searching FOLIO for the call number range ${firstCN} – ${lastCN}` +
-           ` (in either order) at location "${locName}" produced no results.` +
-           ' Please verify the call numbers (paying special attention to any' +
-           ' space characters) as well as the location.');
+           `Searching FOLIO for the call number range ${firstCN} – ${lastCN}`  +
+           ` (in either order) at location "${locName}" produced no results.`  +
+           ' Please verify the call numbers (paying special attention to any'  +
+           ' period or space characters) as well as the location. If they are' +
+           ' all correct, it is possible the failure occurred due to a sudden' +
+           ' network glitch or other temporary problem. Please wait a short' +
+           ' time, then try the command again. If this situation repeats,' +
+           ' please report it to the developers.');
     }
   }
 
-  // Now we get the records for real. Do it in batches of 100.
-  log(`getting ${expected.totalRecords} item records`);
+  // Get the rest of the records, if there are more.
   let records = expected.items;
   let results;
   for (let offset = 100; offset < expected.totalRecords; offset += 100) {
@@ -446,29 +424,21 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
     } else {
       quit('Failed to get complete set of records',
            `While downloading the item records for ${firstCN} – ${lastCN},` +
-           ' Boffo unexpectedly received an empty batch from FOLIO. Please' +
-           ' report this situation to the developers.');
+           ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
+           ' be due to a sudden network glitch or other temporary failure,' +
+           ' or it may indicate a deeper problem. Please wait a short time' +
+           ' then try the command again. If this situation repeats, please' +
+           ' report it to the developers.');
     }
   }
-  records = sortByShelvingOrder(records);
 
-  // Make sure Call number is shown in the results.
-  restoreFieldSelections();
-  const enabledFields = fields.filter(f => f.enabled);
-  const headings = enabledFields.map(f => f.name);
-
-  let cellValues = [];
-  records.forEach((record) => {
-    cellValues.push(enabledFields.map(f => f.getValue(record)));
-  });
-  const resultsSheet = createResultsSheet(records.length, headings);
-  let cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
-  cells.setValues(cellValues);
-  note('Writing results to sheet ✨', 7);
-  SpreadsheetApp.setActiveSheet(resultsSheet);
+  // And we're done.
+  writeResultsSheet(sortByShelvingOrder(records));
 }
 
-
+/**
+ * Returns all item records for a given call number at a given location.
+ */
 function getItemsForCN(cn, locationId) {
   // Remember this in case we have to print a message to the user.
   const givenCN = cn;
@@ -521,10 +491,11 @@ function getItemsForCN(cn, locationId) {
         itemRecords.push.apply(itemRecords, results.items);
       } else {
         quit(`Failed to get complete set of records for ${givenCN}.`,
-             ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
-             ' be due to a temporary network glitch, or it may be a symptom'  +
-             ' of a deeper problem. Please wait a few seconds and try again.' +
-             ' If the problem persists, please report it to the developers.');
+             ' Boffo unexpectedly received an empty batch from FOLIO. It' +
+             ' may be due to a sudden network glitch or other temporary'  +
+             ' failure, or it may indicate a deeper problem. Please wait' +
+             ' a few seconds, then try again. If this situation repeats,' +
+             ' please report it to the developers.');
       }
     }
     log(`got ${itemRecords.length} item records`);
@@ -533,14 +504,14 @@ function getItemsForCN(cn, locationId) {
     // Get the location name so we can write it in the error message.
     const locName = getLocationsList().find(el => (el.id == locationId)).name;
     quit(`Could not find an item with call number "${givenCN}" at this location`,
-         'Searching in FOLIO did not return any items at the location' +
-         ` "${locName}" for the call number as written. Please verify` +
-         ` that "${givenCN}" is correct (paying special attention to`  +
-         ' spaces and periods) and that the location is correct, then' +
-         ' try the command again. If everything looks correct, it is'  +
-         " possible that a temporary network glitch occurred; in that" +
-         ' case, please wait a few seconds and try again. If the' +
-         ' problem persists, please report it to the developers.');
+         'Searching in FOLIO did not return any items at the location'    +
+         ` "${locName}" for the call number as written. Please verify`    +
+         ` the call number "${givenCN}" (paying special attention to`     +
+         ' periods and space characters) and the location. If they are'   +
+         ' all correct, it is possible the failure occurred due to a'     +
+         ' sudden network glitch or other temporary problem. Please wait' +
+         ' a short time, then try the command again. If this situation,'  +
+         ' repeats, please report it to the developers.');
     // This branch will never actually return, but do this for consistency:
     return [];
   }
@@ -549,7 +520,16 @@ function getItemsForCN(cn, locationId) {
 /**
  * Takes a list of items (assumed to be sorted by effectiveShelvingOrder) and
  * returns the first value of effectiveShelvingOrder found.
- * 
+ *
+ * We use the effectiveShelvingOrder for things like searching by call number
+ * ranges, because it's the only version of the call number that will work
+ * for '>=' and '<=' searches in FOLIO. However, there's a complication: in
+ * some item records, the field is empty. If that happens, our fallback
+ * approach is to look in the lists of items for the next one with a nonempty
+ * effectiveShelvingOrder. Now, testing the first item and only looking for a
+ * fallback if it has an empty effectiveShelvingOrder field is equivalent to
+ * simply iterating over the whole list looking for the first one with a
+ * value. That's what this function does.
  */
 function findItemWithEffectiveShelvingOrder(itemList, cn) {
   for (let i = 0; i < itemList.length; i++) {
@@ -574,7 +554,8 @@ function findItemWithEffectiveShelvingOrder(itemList, cn) {
  * way, we know exactly what we're doing.
  */
 function sortByShelvingOrder(records) {
-  // Yes, sort() sorts in place, but returning the value leads to clearer code.
+  // sort() changes the array in place, but returning the value leads to
+  // clearer calling code.
   return records.sort((r1, r2) => {
     return r1.effectiveShelvingOrder.localeCompare(r2.effectiveShelvingOrder);
   });
@@ -591,8 +572,7 @@ function getNameForLocation(locationId) {
  * Writes the results of call number searches to a new sheet.
  */
 function writeResultsSheet(records) {
-  restoreFieldSelections();
-  const enabledFields = fields.filter(f => f.enabled);
+  const enabledFields = getEnabledFields();
   const headings = enabledFields.map(f => f.name);
   let cellValues = [];
   records.forEach((record) => {
@@ -601,8 +581,8 @@ function writeResultsSheet(records) {
   const resultsSheet = createResultsSheet(records.length, headings);
   const cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
+  note('Writing results to sheet ✨', 8);
   SpreadsheetApp.setActiveSheet(resultsSheet);
-  note('Writing results to sheet ✨', 5);
 }
 
 
@@ -665,9 +645,17 @@ function restoreFieldSelections() {
         field.enabled = storedFields[index].enabled;
       }
     });
-    // Always show the call number.
-    setFieldEnabled('Call number', true);
   }
+}
+
+/**
+ * Return the subset of fields that is enabled, making sure to always
+ * enable the Barcode field.
+ */
+function getEnabledFields() {
+  restoreFieldSelections();
+  setFieldEnabled('Barcode', true);
+  return fields.filter(f => f.enabled);
 }
 
 /**
@@ -931,6 +919,9 @@ function menuItemClearToken() {
 // Menu item "About Boffo".
 // ............................................................................
 
+/**
+ * Shows the About dialog for Boffo.
+ */
 function menuItemShowAbout() {
   const htmlTemplate = HtmlService.createTemplateFromFile('about');
   // Setting the next variable on the template makes it available in the
@@ -1071,22 +1062,30 @@ function getBarcodesFromSelection(required = false) {
 }
 
 /**
- * Returns the number of columns needed to hold the fields fetched from FOLIO.
+ * Creates the results sheet and returns it.
  */
-function getNumColumnsForSelectedFields() {
-  return fields.filter(f => f.enabled).length;
-}
+function createResultsSheet(numRows, headings) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(makeUniqueSheetName());
 
-/**
- * Returns the spreadsheet column letter corresponding to the last column.
- */
-function getLastColumnLetter() {
-  const lastColIndex = getNumColumnsForSelectedFields() - 1;
-  if (lastColIndex >= 26) {
-    return 'A' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex - 26);
-  } else {
-    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex);
+  const numColumnsNeeded = getNumColumnsForSelectedFields();
+  if (sheet.getMaxColumns() < numColumnsNeeded) {
+    sheet.insertColumns(1, numColumnsNeeded - sheet.getMaxColumns());
   }
+  sheet.setColumnWidths(1, numColumnsNeeded, 150);
+  sheet.setFrozenRows(1);
+
+  const cells = sheet.getRange(`A1:A${numRows + 1}`);
+  cells.setHorizontalAlignment('left');
+
+  const lastLetter = getLastColumnLetter();
+  const headerRow = sheet.getRange(`A1:${lastLetter}1`);
+  headerRow.setValues([headings]);
+  headerRow.setFontSize(10);
+  headerRow.setFontColor('white');
+  headerRow.setFontWeight('bold');
+  headerRow.setBackground('#999999');
+
+  return sheet;
 }
 
 /**
@@ -1105,6 +1104,25 @@ function makeUniqueSheetName(baseName = 'Item Data') {
     newName = `${baseName} ${i}`;
   }
   return newName;
+}
+
+/**
+ * Returns the number of columns needed to hold the fields fetched from FOLIO.
+ */
+function getNumColumnsForSelectedFields() {
+  return fields.filter(f => f.enabled).length;
+}
+
+/**
+ * Returns the spreadsheet column letter corresponding to the last column.
+ */
+function getLastColumnLetter() {
+  const lastColIndex = getNumColumnsForSelectedFields() - 1;
+  if (lastColIndex >= 26) {
+    return 'A' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex - 26);
+  } else {
+    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt(lastColIndex);
+  }
 }
 
 /**
