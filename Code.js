@@ -177,7 +177,7 @@ function lookUpBarcodes() {
 
   // If few barcodes were fetched, it happens too fast to bother printing this.
   if (numBarcodes > 200) {
-    note(`Looking up ${numBarcodes} barcodes …`);
+    note(`Looking up ${numBarcodes} barcodes …`, 10);
   }
 
   // Each barcode lookup will consist of a CQL query of the form "barcode==N"
@@ -218,7 +218,7 @@ function lookUpBarcodes() {
   log(`got total of ${total} records for ${numBarcodes} barcodes selected`);
   SpreadsheetApp.setActiveSheet(resultsSheet);
   if (numBarcodes > 200) {
-    note(`Writing results – this may take a little longer …`);
+    note(`Writing results – this may take a little longer …`, 5);
   }
 }
 
@@ -337,15 +337,14 @@ function getLocationsList() {
   const endpoint = `${folioUrl}/locations?limit=5000`;
   const results = fetchJSON(endpoint, tenantId, token);
   if (! ('locations' in results)) {
-    log('failed to get locations from FOLIO server');
     quit('Unable to get list of locations from server',
          'The request for a list of locations from the FOLIO server failed.' +
          ' This may be due to a temporary network glitch. Please wait a few' +
          ' seconds, then retry the command again. If this problem persists,' +
          ' please report it to the developers.');
   }
-  const locationsList = results.locations.map(el => {
-    return {name: el.name, id: el.id};
+  const locationsList = results.locations.map(location => {
+    return {name: location.name, id: location.id};
   });
   return locationsList.sort((location1, location2) => {
     return location1.name.localeCompare(location2.name);
@@ -353,238 +352,122 @@ function getLocationsList() {
 }
 
 /**
- * Does the actual work of getting items in a call number range. This is
+ * Dispatches to other functions based on the current situation. This is
  * invoked from inside the HTML form "call-numbers-form.html" after getting
- * input from the user.
+ * input from the user. If the user provided the same call number for first
+ * and last values in the form, then this searches for a single call number
+ * at the given location; otherwise, it does a proper range search.
  */
 function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
-  note('Looking up call numbers …');
+  note('Searching FOLIO …', 30);
+  if (firstCN === lastCN) {
+    log(`first and last call number are the same: ${firstCN}`);
+    showItemsForCallNumber(firstCN, locationId);
+  } else {
+    showItemsForCallNumberRange(firstCN, lastCN, locationId);
+  }
+}
 
-  // First make sure the given CNs are valid.
-  firstCN = getVerifiedCN(firstCN, locationId);
-  lastCN  = getVerifiedCN(lastCN, locationId);
+/**
+ * Does the actual work of getting items for a single call number, for the
+ * case where the user types the value for the first and last call number
+ * in a range.
+ */
+function showItemsForCallNumber(cn, locationId) {
+  writeResultsSheet(getItemsForCN(cn, locationId));
+}
 
-  // If we get this far, we have valid CNs. Let's saddle up and do this thing.
+/**
+ * Does the actual work of performing a search on a call number range.
+ */
+function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
+  // A given c.n. may return multiple items. Start by getting sorted lists
+  // of items for each of the two call numbers given by the user.
+  const firstItemList = getItemsForCN(firstCN, locationId);
+  const lastItemList  = getItemsForCN(lastCN, locationId);
+
+  // If we get this far, we have valid CNs. We use the effectiveShelvingOrder
+  // to help figure out the boundaries of the range, because that's the only
+  // version of the call number that will work for '>=' and '<=' searches in
+  // FOLIO. However, there's a complication: in some records, the field is
+  // empty. If this happens, we look in the item lists for other items with
+  // the same call number and use the first with an effectiveShelvingOrder
+  // value. If we can't find any, we give up.
+  let firstESO = findItemWithEffectiveShelvingOrder(firstItemList, firstCN);
+  let lastESO  = findItemWithEffectiveShelvingOrder(lastItemList, lastCN);
+
+  // If we get this far, we have values for effectiveShelvingOrder for both
+  // the first and last endpoints of the search. We can proceed.
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
 
-  function makeRangeQuery(cn1, cn2, numRecordsToGet = 100, offset = 0) {
-    // 100 is the max that the Folio API will return for this query.
-    return baseUrl + `?limit=${numRecordsToGet}&offset=${offset}&query=` +
-      encodeURI(`effectiveLocationId==${locationId} AND ` +
-                `effectiveCallNumberComponents.callNumber>="${cn1}" AND ` +
-                `effectiveCallNumberComponents.callNumber<="${cn2}"` +
-                ` sortBy effectiveShelvingOrder`);
+  function makeRangeQuery(eso1, eso2, offset = 0) {
+    return baseUrl + `?limit=100&offset=${offset}&query=` +
+      encodeURI(`effectiveLocationId==${locationId}` +
+                ` AND effectiveShelvingOrder>="${eso1}"` +
+                ` AND effectiveShelvingOrder<="${eso2}"`);
   }
 
-  // The user may have flipped the order of the CNs. Check & swap them if so.
-  let endpoint = makeRangeQuery(firstCN, lastCN, 0);
+  // Do the range query, and beware that the user may have swapped the c.n.'s.
+  let endpoint = makeRangeQuery(firstESO, lastESO);
   let expected = fetchJSON(endpoint, tenantId, token);
   if (expected.totalRecords > 0) {
-    log(`range ${firstCN} -- ${lastCN} has ${expected.totalRecords} records`);
+    // Success.
+    log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
   } else {
     log(`swapping the order of the call numbers and trying one more time`);
-    [firstCN, lastCN] = [lastCN, firstCN];
-    endpoint = makeRangeQuery(firstCN, lastCN, 0);
+    [firstESO, lastESO] = [lastESO, firstESO];
+    endpoint = makeRangeQuery(firstESO, lastESO);
     expected = fetchJSON(endpoint, tenantId, token);
-    if (expected.totalRecords == 0) {
+    if (expected.totalRecords > 0) {
+      log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
+    } else {
       // Get the location name so we can write it in the error message.
       const locName = getLocationsList().find(el => (el.id == locationId)).name;
       quit('No results for given call number range and location',
            `Searching FOLIO for the call number range ${firstCN} – ${lastCN}` +
            ` (in either order) at location "${locName}" produced no results.` +
            ' Please verify the call numbers (paying special attention to any' +
-           ' space characters) as well as the location. If everything looks'  +
-           ' correct, it is possible a temporary network glitch occurred; in' +
-           ' that case, please wait a few seconds and try again. If the' +
-           ' problem persists, please report it to the developers.');
+           ' space characters) as well as the location.');
     }
   }
 
   // Now we get the records for real. Do it in batches of 100.
-  let records = [];
-  let results;
   log(`getting ${expected.totalRecords} item records`);
-  for (let offset = 0; offset < expected.totalRecords; offset += 100) {
-    endpoint = makeRangeQuery(firstCN, lastCN, 100, offset);
+  let records = expected.items;
+  let results;
+  for (let offset = 100; offset < expected.totalRecords; offset += 100) {
+    endpoint = makeRangeQuery(firstESO, lastESO, offset);
     results = fetchJSON(endpoint, tenantId, token);
     if (results.items) {
-      records = records.concat(results.items);
+      records.push.apply(records, results.items);
     } else {
-      log(`unexpectedly got an empty batch during iteration`);
       quit('Failed to get complete set of records',
            `While downloading the item records for ${firstCN} – ${lastCN},` +
-           ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
-           ' be due to a temporary network glitch, or it may be a symptom'  +
-           ' of a deeper problem. Please wait a few seconds and try again.' +
-           ' If the problem persists, please report it to the developers.');
+           ' Boffo unexpectedly received an empty batch from FOLIO. Please' +
+           ' report this situation to the developers.');
     }
   }
+  records = sortByShelvingOrder(records);
 
-  // Create a new sheet where results will be written.
-  restoreFieldSelections();
   // Make sure Call number is shown in the results.
-  setFieldEnabled('Call number', true);
+  restoreFieldSelections();
   const enabledFields = fields.filter(f => f.enabled);
   const headings = enabledFields.map(f => f.name);
-  const resultsSheet = createResultsSheet(records.length, headings);
-  const lastLetter = getLastColumnLetter();
 
-  log('writing results to sheet');
   let cellValues = [];
   records.forEach((record) => {
     cellValues.push(enabledFields.map(f => f.getValue(record)));
   });
+  const resultsSheet = createResultsSheet(records.length, headings);
   let cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
-
-  note('Done ✨');
-  return true;
+  SpreadsheetApp.setActiveSheet(resultsSheet);
+  note('Writing results to sheet ✨', 5);
 }
 
-/**
- * Returns a query string to get items for a range of call numbers.
- */
 
-/**
- * Returns the effectiveCallNumberComponents.callNumber value of an item
- * found by searching for the given call number at the location identified
- * by the given location UUID. This has the effect of verifying that an
- * item with the given call number exists in the database, and may also
- * provide a slightly more normalized version of the call number. If 
- * searching for the given call number produces more than one result, one
- * is picked at random.
- */
-function getVerifiedCN(cn, locationId) {
-  const items = getSampleItemsForCN(cn, locationId);
-  if (items.length > 0) {
-    // Found at least one item for the given CN + location. Return 1st value.
-    return items[0].effectiveCallNumberComponents.callNumber;
-  } else {
-    // Get the location name so we can write it in the error message.
-    const locName = getLocationsList().find(el => (el.id == locationId)).name;
-    log(`failed to find an item with call number ${cn} at this location`);
-    quit(`Could not find an item with call number ${cn} at this location`,
-         'Searching in FOLIO did not return any items at the location' +
-         ` "${locName}" for the call number as written. Please verify` +
-         ` that "${cn}" is correct (paying special attention to space` +
-         ' characters) and that the location is the correct one, then' +
-         ' try the command again. If everything looks correct, it is'  +
-         " possible that a temporary network glitch occurred; in that" +
-         ' case, please wait a few seconds and try again. If the' +
-         ' problem persists, please report it to the developers.');
-    return '';
-  }
-}
-
-/**
- * Searches by call number and returns a list of up to 100 item records
- * found.
- *
- * Note that this list may not be complete, if there are more than 100 items
- * with this call number at that location. The max number that can be
- * retrieved at one time via API from our Folio server is 100. We can get
- * more by using multiple API calls, but the purpose of this function is
- * to establish that the call number exists, not to get the full results.
- */
-function getSampleItemsForCN(cn, locationId) {
-  const {folioUrl, tenantId, token} = getStoredCredentials();
-
-  function fetchJSONbyCN(thisCN) {
-    const baseUrl = `${folioUrl}/inventory/items`;
-    const query = `?limit=100&query=` +
-          encodeURI(`effectiveLocationId==${locationId} AND ` +
-                    `effectiveCallNumberComponents.callNumber=="${thisCN}"` +
-                    ` sortBy effectiveShelvingOrder`);
-    const endpoint = baseUrl + query;
-    return fetchJSON(endpoint, tenantId, token);
-  }
-
-  let results = fetchJSONbyCN(cn);
-  log(`got ${results.totalRecords} records`);
-  if (results.totalRecords > 0) {
-    return results.items;
-  } else {
-    // We didn't find the call number as given. This can happen for 2 reasons:
-    // a) There are no items with that call number at the given location.
-    // b) The c.n. is wrong somehow. E.g., if the user mistakenly split the
-    //    call number in the wrong place(s), and/or the exact text of the
-    //    call number in the database is itself incorrect (which can happen).
-    // Approach:
-    // 1) If the call number has whitespace and/or periods, we generate
-    //    variants based on splitting the c.n. in different places.
-    // 2) Otherwise, we have no more tricks to try for producing
-    //    alternative-split versions, so we give up.
-    if (/[ .]/.test(cn)) {
-      log(`initial call number ${cn} not found; trying alternatives`);
-      for (const candidate of makeCallNumberVariations(cn)) {
-        results = fetchJSONbyCN(candidate);
-        log(`searching for ${candidate} produced ${results.totalRecords} items`);
-        if (results.totalRecords > 0) {
-          return results.items;
-        }
-      }
-    } else {
-      quit(`Call number not found`,
-           `Searching the FOLIO database for "${cn}" failed to produce a` +
-           ' result. This can happen for different reasons. Perhaps that' +
-           ' call number is invalid (e.g., having a space where one does' +
-           ' not belong), or perhaps there are no items with that number' +
-           ' at that location, or maybe a system glitch occurred. Please' +
-           " check the call number carefully. If it's correct and you're" +
-           ' certain it exists at that location, try to wait for a short' +
-           ' time and run the command again.');
-    }
-  }
-  return [];
-}
-
-/**
- * Returns a list of possible call numbers given an initial call number.
- * Needed because what is in the database for a given call number may
- * not be in the correct LoC form. For example, if the user enters
- *   HB171.A418 2003
- * it turns out that the correct form is
- *   HB171 .A418 2003
- * (the .A418 part is a cutter), but in our database, the item in question
- * was entered with the call number "HB171.A418 2003". The existence of
- * inconsistencies in the database means it's pointless to try to normalize
- * our user's input to a correct LoC call number form. Even if we had perfect
- * normalization of the user's input and we always sent 100% correct versions
- * in our query, the fact that the value *in the database* might be incorrect
- * means that we would never match it. So instead, the approach is to
- * generate a list of candidate variations. This function returns the list of
- * candidates, which callers try to use in an effort to find one that works.
- *
- * Examples:
- *   GV199.3                     -> GV199.3
- *
- *   GV199.F3                    -> GV199.F3
- *                                  GV199 .F3
- *
- *   HB171.A418 2003             -> HB171.A418 2003
- *                                  HB171 .A418 2003
- *
- *   GV 199.92 .B38 A3 1994      -> GV199.92 .B38 A3 1994
- *                                  GV199.92.B38 A3 1994
- *
- *   GV 199.92.F39 .F39 2011     -> GV199.92.F39 .F39 2011
- *                                  GV199.92.F39.F39 2011
- *                                  GV199.92 .F39 .F39 2011
- *                                  GV199.92 .F39.F39 2011
- *
- *   E505.5 102nd.F57 1999       -> E505.5 102nd.F57 1999
- *                                  E505.5 102nd .F57 1999
- *
- *   HB3717 1929.E37 2015        -> HB3717 1929.E37 2015
- *                                  HB3717 1929 .E37 2015
- *
- *   DT423.E26 9th.ed. 2012      -> DT423.E26 9th.ed. 2012
- *                                  DT423.E26 9th .ed. 2012
- */
-function makeCallNumberVariations(givenCN) {
-  let cn = givenCN;
-
+function getItemsForCN(cn, locationId) {
   // Remove any space between the initial letter(s) and the first number.
   const splitClassRe = /^(?<letters>[A-Z]+)\s+(?<numbers>[0-9]+)(?<other>[^0-9])/i;
   const splitClassMatch = splitClassRe.exec(cn);
@@ -596,32 +479,125 @@ function makeCallNumberVariations(givenCN) {
     cn = letters + numbers + restOfCN;
   }
 
-  // Class numbers must start with 1-3 letters followed by 1+ digits.
-  const classNumberRe = /^[a-z]{1,3}[0-9]+(\.[0-9]+)?/i;
-  const classNumberMatch = classNumberRe.exec(cn);
-  if (! classNumberMatch) {
-    quit(`Invalid call number`,
-         'Call numbers are expected to begin with 1-3 letters followed by' +
-         ` at least one digit, but the given value "${givenCN}" does not.`);
+  // Insert wildcards in front of every period.
+  //   GV199.F3               -> GV199*.F3
+  //   GV199.3                -> GV199*.3
+  //   GV199.92 .B38 A3 1994  -> GV199*.92*.B38 A3 1994
+  //   GV199.92.F39 .F39 2011 -> GV199*.92*.F39*.F39 2011
+  //   HB3717 1929.E37 2015   -> HB3717 1929*.E37 2015
+  cn = cn.replace(/(\s*\.(?! ))/g, function($0, $1) { return '*.'; });
+
+  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const baseUrl = `${folioUrl}/inventory/items`;
+
+  function makeQuery(offset = 0) {
+    // Search on the wildcarded call number at the given location.
+    // 100 is the max that the Folio API will return for this query.
+    return baseUrl + `?limit=100&offset=${offset}&query=` +
+          encodeURI(`effectiveLocationId==${locationId} AND ` +
+                    `effectiveCallNumberComponents.callNumber=="${cn}"`);
   }
 
-  // FIXME this does not produce all possible combinations. Need to revise
-  // the code below, probably to use a recursive approach.
+  let endpoint = makeQuery(0);
+  let records = fetchJSON(endpoint, tenantId, token);
+  log(`FOLIO has ${records.totalRecords} items for ${cn} at location ${locationId}`);
 
-  // Look at what follows the class number. If there are substrings that have
-  // the form of a dot followed by a letter, use that to create variations.
-  let candidates = [];
-  let match;
-  const dotLetterRe = /\.[A-Z][0-9]+[^a-z0-9]/ig;
-  while ((match = dotLetterRe.exec(cn))) {
-    let index = match.index;
-    let front = match.input.slice(0, index).trim();
-    let tail  = match.input.slice(index).trim();
-    candidates.push(front + tail);
-    candidates.push(front + ' ' + tail);
+  if (records.totalRecords > 0 && records.totalRecords <= 100) {
+    return sortByShelvingOrder(records.items);
+  } else if (records.totalRecords > 100) {
+    // The call above didn't get all of the records.
+    log('iterating to get all records');
+    let itemRecords = records.items;
+    let results;
+    for (let offset = 100; offset <= records.totalRecords; offset += 100) {
+      endpoint = makeQuery(offset);
+      results = fetchJSON(endpoint, tenantId, token);
+      if (results.items) {
+        itemRecords.push.apply(itemRecords, results.items);
+      } else {
+        quit(`Failed to get complete set of records for ${cn}.`,
+             ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
+             ' be due to a temporary network glitch, or it may be a symptom'  +
+             ' of a deeper problem. Please wait a few seconds and try again.' +
+             ' If the problem persists, please report it to the developers.');
+      }
+    }
+    log(`got ${itemRecords.length} item records`);
+    return sortByShelvingOrder(itemRecords);
+  } else {
+    // Get the location name so we can write it in the error message.
+    const locName = getLocationsList().find(el => (el.id == locationId)).name;
+    quit(`Could not find an item with call number "${cn}" at this location`,
+         'Searching in FOLIO did not return any items at the location' +
+         ` "${locName}" for the call number as written. Please verify` +
+         ` that "${cn}" is correct (paying special attention to space` +
+         ' characters) and that the location is the correct one, then' +
+         ' try the command again. If everything looks correct, it is'  +
+         " possible that a temporary network glitch occurred; in that" +
+         ' case, please wait a few seconds and try again. If the' +
+         ' problem persists, please report it to the developers.');
+    // This branch will never actually return, but do this for consistency:
+    return [];
   }
-  log(`returning [${candidates.join(", ")}]`);
-  return candidates;
+}
+
+/**
+ * Takes a list of items (assumed to be sorted by effectiveShelvingOrder) and
+ * returns the first value of effectiveShelvingOrder found.
+ * 
+ */
+function findItemWithEffectiveShelvingOrder(itemList, cn) {
+  for (let i = 0; i < itemList.length; i++) {
+    if (itemList[i].effectiveShelvingOrder) {
+      return itemList[i].effectiveShelvingOrder;
+    }
+  }
+  quit(`Cannot search using call number "${cn}"`,
+       `None of the item records associated with the call number "${cn}"` +
+       ' have a value for the record field "effectiveShelvingOrder".' +
+       ' Boffo needs to use this field when searching ranges of call' +
+       " numbers and can't proceed if all of the records for a given" +
+       ' call number lack a value for this field.');
+  return '';
+}
+
+/**
+ * Sorts an array of item records by the effectiveShelvingOrder field.
+ *
+ * In principle, you can add "sortBy effectiveShelvingOrder" to the API
+ * call to Folio. In practice, I got bizarre results when I tried. This
+ * way, we know exactly what we're doing.
+ */
+function sortByShelvingOrder(records) {
+  // Yes, sort() sorts in place, but returning the value leads to clearer code.
+  return records.sort((r1, r2) => {
+    return r1.effectiveShelvingOrder.localeCompare(r2.effectiveShelvingOrder);
+  });
+}
+
+/**
+ * Returns the name for a location given a location id.
+ */
+function getNameForLocation(locationId) {
+  return getLocationsList().find(el => (el.id == locationId)).name;
+}
+
+/**
+ * Writes the results of call number searches to a new sheet.
+ */
+function writeResultsSheet(records) {
+  restoreFieldSelections();
+  const enabledFields = fields.filter(f => f.enabled);
+  const headings = enabledFields.map(f => f.name);
+  let cellValues = [];
+  records.forEach((record) => {
+    cellValues.push(enabledFields.map(f => f.getValue(record)));
+  });
+  const resultsSheet = createResultsSheet(records.length, headings);
+  const cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
+  cells.setValues(cellValues);
+  SpreadsheetApp.setActiveSheet(resultsSheet);
+  note('Writing results to sheet ✨', 5);
 }
 
 
@@ -684,6 +660,8 @@ function restoreFieldSelections() {
         field.enabled = storedFields[index].enabled;
       }
     });
+    // Always show the call number.
+    setFieldEnabled('Call number', true);
   }
 }
 
@@ -757,7 +735,7 @@ function getStoredCredentials() {
  */
 function withCredentials(funcToCall) {
   const {folioUrl, tenantId, token} = getStoredCredentials();
-  const haveCreds = nonempty(folioUrl) && nonempty(tenantId) && nonempty(token);
+  const haveCreds = isNonempty(folioUrl) && isNonempty(tenantId) && isNonempty(token);
   if (haveCreds && haveValidToken(folioUrl, tenantId, token)) {
     log(`have credentials; calling ${funcToCall.name}`);
     funcToCall();
@@ -833,7 +811,6 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
       props.setProperty('boffo_folio_tenant_id', tenantId);
       return true;
     } else {
-      log('no token in the FOLIO response headers');
       quit('Unexpectedly failed to get a token back',
            'The call to FOLIO was successful but FOLIO did not return' +
            ' a token. This should never occur, and probably indicates' +
@@ -845,7 +822,7 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   } else if (httpCode < 500) {
     const responseContent = response.getContentText();
     let folioMsg = responseContent;
-    if (nonempty(responseContent) && responseContent.startsWith('{')) {
+    if (isNonempty(responseContent) && responseContent.startsWith('{')) {
       const results = JSON.parse(response.getContentText());
       folioMsg = results.errors[0].message;
     }
@@ -925,9 +902,9 @@ function haveValidToken(folioUrl, tenantId, token) {
  */
 function haveCredentials() {
   const props = PropertiesService.getUserProperties();
-  return (nonempty(props.getProperty('boffo_folio_url')) &&
-          nonempty(props.getProperty('boffo_folio_tenant_id')) &&
-          nonempty(props.getProperty('boffo_folio_api_token')));
+  return (isNonempty(props.getProperty('boffo_folio_url')) &&
+          isNonempty(props.getProperty('boffo_folio_tenant_id')) &&
+          isNonempty(props.getProperty('boffo_folio_api_token')));
 }
 
 
@@ -1168,8 +1145,8 @@ function getBoffoMetadata() {
  */
 function note(message, duration = 2) {
   try {
+    log('displaying note to user: ' + message);
     SpreadsheetApp.getActiveSpreadsheet().toast(message, 'Boffo', duration);
-    log('displayed note to user: ' + message);
   } catch ({name, error}) {
     // I've seen "Exception: Service unavailable: Spreadsheets" errors on
     // occasion. In the present context, it's not worth doing more than
@@ -1184,6 +1161,7 @@ function note(message, duration = 2) {
  * a black error banner across the top of the page.
  */
 function quit(why, details = '', showAlert = true) {
+  note('Boffo stopped because of an error.');
   // Custom exception object. This is used so that the Google error banner
   // says "Why: details" instead of the default ("Error: ...message...").
   function Stopped() {
@@ -1209,7 +1187,7 @@ function log(text) {
  * This works on arrays, which in JavaScript have the (IMHO) confusing
  * behvior that "x ? true : false" returns true for an empty array.
  */
-function nonempty(value) {
+function isNonempty(value) {
   if (Array.isArray(value)) {
     return value.length > 0;
   } else {
