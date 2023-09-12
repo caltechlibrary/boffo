@@ -1,5 +1,15 @@
 # Change log for Boffo
 
+## Version 1.7.0
+
+New in this version:
+* The interface for searching by call numbers now optionally lets you enter only one value, to search for that single call number at the given location.
+
+Changes in this version:
+* The previous algorithm for searching by call numbers was completely broken. This new implementation should do the right thing.
+* Previously, when searching by call numbers, if nothing was found for a given call number, Boffo assumed the call number had an error in it and printed an error message to that effect. This was wrong because failing to find a call number could be due to other causes, such as if there are no items with that call number at the given location. The new version of Boffo hopefully prints a more accurate error message.
+
+
 ## Version 1.6.1
 
 Changes in this version:
