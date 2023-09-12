@@ -177,7 +177,7 @@ function lookUpBarcodes() {
 
   // If few barcodes were fetched, it happens too fast to bother printing this.
   if (numBarcodes > 200) {
-    note(`Looking up ${numBarcodes} barcodes …`, 10);
+    note(`Looking up ${numBarcodes} barcodes …`, 15);
   }
 
   // Each barcode lookup will consist of a CQL query of the form "barcode==N"
@@ -581,7 +581,7 @@ function writeResultsSheet(records) {
   const resultsSheet = createResultsSheet(records.length, headings);
   const cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
-  note('Writing results to sheet ✨', 8);
+  note('Writing results to sheet ✨', 5);
   SpreadsheetApp.setActiveSheet(resultsSheet);
 }
 
