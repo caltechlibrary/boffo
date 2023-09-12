@@ -55,23 +55,22 @@
   <body>
     <div id="dialog">
       <div class="explanatory-text">
-        <p>Provide the first and last call numbers in the range
-          to be looked up, and the location of the items. Note:
-          this only recognizes the Library of Congress form of
-          call numbers.
+        <p>You can either provide a single call number to search for
+          items with that call number at the given location, or provide
+          two call numbers to search for items within a range of call
+          numbers at the given location.
         </p>
       </div>
       <div class="form">
         <form id="form" onsubmit="submitForm(this.submitted); return false;">
-          <label for="firstCN" class="label">Starting call number:</label>
+          <label for="firstCN" class="label">Call number (or beginning of range):</label>
           <br/>
           <input name="firstCN" id="firstCN" type="text" class="wide field"
                  autofocus required/>
           <br/>
-          <label for="lastCN" class="label">Ending call number:</label>
+          <label for="lastCN" class="label">(Optional) End of range:</label>
           <br/>
-          <input name="lastCN" id="lastCN" type="text" class="wide field"
-                 required/>
+          <input name="lastCN" id="lastCN" type="text" class="wide field"/>
           <br/>
           <label for="location" class="label">Location:</label>
           <br/>

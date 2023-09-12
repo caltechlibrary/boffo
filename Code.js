@@ -100,7 +100,7 @@ function onOpen() {
   // actually 2 unbreakable spaces. This detail is invisible in the editor.
   SpreadsheetApp.getUi().createMenu('Boffo')
     .addItem('🔎 ﻿ ﻿Look up selected item barcodes', 'menuItemLookUpBarcodes')
-    .addItem('🔦 ﻿ ﻿Find items in call number range', 'menuItemFindByCallNumbers')
+    .addItem('🔦 ﻿ ﻿Find items by call number(s)', 'menuItemFindByCallNumbers')
     .addSeparator()
     .addItem('🇦︎ ﻿ ﻿Choose record fields to show', 'menuItemSelectFields')
     .addItem('🪪︎ ﻿ ﻿Set FOLIO user credentials', 'menuItemGetCredentials')
@@ -323,7 +323,7 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
   }).join('');
   const htmlContent = htmlTemplate.evaluate().setWidth(470).setHeight(290);
   log('showing dialog to get call number range');
-  SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Call number range');
+  SpreadsheetApp.getUi().showModalDialog(htmlContent, 'Find by call number(s)');
 }
 
 /**
@@ -333,7 +333,8 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
  */
 function getLocationsList() {
   const {folioUrl, tenantId, token} = getStoredCredentials();
-  // 5000 is simply a high enough number to get the complete list.
+  // Some other API calls are limited to 100 items, but this one allows more.
+  // 5000 is simply a high enough number to get the complete list (I hope!).
   const endpoint = `${folioUrl}/locations?limit=5000`;
   const results = fetchJSON(endpoint, tenantId, token);
   if (! ('locations' in results)) {
@@ -360,10 +361,11 @@ function getLocationsList() {
  */
 function getItemsInCallNumberRange(firstCN, lastCN, locationId) {
   note('Searching FOLIO …', 30);
-  if (firstCN === lastCN) {
-    log(`first and last call number are the same: ${firstCN}`);
+  if (!lastCN || (firstCN === lastCN)) {
+    log(`doing single call number search: "${firstCN}"`);
     showItemsForCallNumber(firstCN, locationId);
   } else {
+    log(`doing a range search: "${firstCN}" -> "${lastCN}"`);
     showItemsForCallNumberRange(firstCN, lastCN, locationId);
   }
 }
@@ -462,12 +464,15 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
   const resultsSheet = createResultsSheet(records.length, headings);
   let cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
+  note('Writing results to sheet ✨', 7);
   SpreadsheetApp.setActiveSheet(resultsSheet);
-  note('Writing results to sheet ✨', 5);
 }
 
 
 function getItemsForCN(cn, locationId) {
+  // Remember this in case we have to print a message to the user.
+  const givenCN = cn;
+
   // Remove any space between the initial letter(s) and the first number.
   const splitClassRe = /^(?<letters>[A-Z]+)\s+(?<numbers>[0-9]+)(?<other>[^0-9])/i;
   const splitClassMatch = splitClassRe.exec(cn);
@@ -515,7 +520,7 @@ function getItemsForCN(cn, locationId) {
       if (results.items) {
         itemRecords.push.apply(itemRecords, results.items);
       } else {
-        quit(`Failed to get complete set of records for ${cn}.`,
+        quit(`Failed to get complete set of records for ${givenCN}.`,
              ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
              ' be due to a temporary network glitch, or it may be a symptom'  +
              ' of a deeper problem. Please wait a few seconds and try again.' +
@@ -527,11 +532,11 @@ function getItemsForCN(cn, locationId) {
   } else {
     // Get the location name so we can write it in the error message.
     const locName = getLocationsList().find(el => (el.id == locationId)).name;
-    quit(`Could not find an item with call number "${cn}" at this location`,
+    quit(`Could not find an item with call number "${givenCN}" at this location`,
          'Searching in FOLIO did not return any items at the location' +
          ` "${locName}" for the call number as written. Please verify` +
-         ` that "${cn}" is correct (paying special attention to space` +
-         ' characters) and that the location is the correct one, then' +
+         ` that "${givenCN}" is correct (paying special attention to`  +
+         ' spaces and periods) and that the location is correct, then' +
          ' try the command again. If everything looks correct, it is'  +
          " possible that a temporary network glitch occurred; in that" +
          ' case, please wait a few seconds and try again. If the' +
