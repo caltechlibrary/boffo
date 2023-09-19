@@ -1,5 +1,10 @@
 # Change log for Boffo
 
+## Version 1.7.1
+
+This version fixes a bug in fetching results from Folio that caused Boffo to return only the first 1000 results from searches that should have yielded more.
+
+
 ## Version 1.7.0
 
 New in this version:
