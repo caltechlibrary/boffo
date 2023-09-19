@@ -10,6 +10,9 @@
 
 const linefeed = String.fromCharCode(10);
 
+// Limit imposed by Google sheets on number of cells in an empty sheet.
+const maxGoogleSheetCells = 10000000;
+
 // Internal constructor function used in the definition of "fields" below.
 function Field(name, enabled, required, getValue) {
   this.name = name;
@@ -375,14 +378,14 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
 
-  function makeRangeQuery(eso1, eso2, offset = 0) {
-    return baseUrl + `?limit=100&offset=${offset}&query=` +
+  function makeRangeQuery(eso1, eso2, limit = 0, offset = 0) {
+    return baseUrl + `?limit=${limit}&offset=${offset}&query=` +
       encodeURI(`effectiveLocationId==${locationId}` +
                 ` AND effectiveShelvingOrder>="${eso1}"` +
                 ` AND effectiveShelvingOrder<="${eso2}"`);
   }
 
-  // Do the range query, and beware that the user may have swapped the c.n.'s.
+  // Try the range query, and beware that the user may have swapped the c.n.'s.
   let endpoint = makeRangeQuery(firstESO, lastESO);
   let expected = fetchJSON(endpoint, tenantId, token);
   if (expected.totalRecords > 0) {
@@ -413,11 +416,23 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
     }
   }
 
-  // Get the rest of the records, if there are more.
-  let records = expected.items;
+  // Don't start downloading results if we won't be able to write them.
+  const numColumns = getEnabledFields().length;
+  const maxRecords = Math.trunc(maxGoogleSheetCells/numColumns) - 1;
+  if (expected.totalRecords > maxRecords) {
+    quit('This query exceeds the maximum number of results that can be written',
+         `The number of records this produced (${maxRecords.toLocaleString()})` +
+         ` times the number of currently-selected data fields (${numColumns})`  +
+         ` exceeds the number of spreadsheet cells that Google Sheets allow in` +
+         ` a single empty spreadsheet.`);
+  }
+
+  // Now get the records.
+  let records = [];
   let results;
-  for (let offset = 100; offset < expected.totalRecords; offset += 100) {
-    endpoint = makeRangeQuery(firstESO, lastESO, offset);
+  note(`Fetching ${expected.totalRecords.toLocaleString()} records from FOLIO …`, 30);
+  for (let offset = 0; offset < expected.totalRecords; offset += 100) {
+    endpoint = makeRangeQuery(firstESO, lastESO, 100, offset);
     results = fetchJSON(endpoint, tenantId, token);
     if (results.items) {
       records.push.apply(records, results.items);
@@ -429,6 +444,9 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
            ' or it may indicate a deeper problem. Please wait a short time' +
            ' then try the command again. If this situation repeats, please' +
            ' report it to the developers.');
+    }
+    if (offset > 0 && (offset % 5000) == 0) {
+      note(`Fetched ${offset.toLocaleString()} records so far and still going …`, 30);
     }
   }
 
@@ -581,7 +599,7 @@ function writeResultsSheet(records) {
   const resultsSheet = createResultsSheet(records.length, headings);
   const cells = resultsSheet.getRange(2, 1, records.length, enabledFields.length);
   cells.setValues(cellValues);
-  note('Writing results to sheet ✨', 5);
+  note('Writing results to sheet ✨', 10);
   SpreadsheetApp.setActiveSheet(resultsSheet);
 }
 
