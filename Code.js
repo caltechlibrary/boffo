@@ -404,7 +404,7 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
     } else {
       // Get the location name so we can write it in the error message.
       const locName = getLocationsList().find(el => (el.id == locationId)).name;
-      quit('No results for given call number range and location',
+      quit('No results for this combination of call number range and location',
            `Searching FOLIO for the call number range ${firstCN} – ${lastCN}`  +
            ` (in either order) at location "${locName}" produced no results.`  +
            ' Please verify the call numbers (paying special attention to any'  +
@@ -418,37 +418,18 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
 
   // Don't start downloading results if we won't be able to write them.
   const numColumns = getEnabledFields().length;
-  const maxRecords = Math.trunc(maxGoogleSheetCells/numColumns) - 1;
-  if (expected.totalRecords > maxRecords) {
+  const maxRows = Math.trunc(maxGoogleSheetCells/numColumns) - 1;
+  if (expected.totalRecords > maxRows) {
     quit('This query exceeds the maximum number of results that can be written',
-         `The number of records this produced (${maxRecords.toLocaleString()})` +
-         ` times the number of currently-selected data fields (${numColumns})`  +
-         ` exceeds the number of spreadsheet cells that Google Sheets allow in` +
-         ` a single empty spreadsheet.`);
+         `The number of records this produced (${maxRows.toLocaleString()})`   +
+         ` times the number of currently-selected data fields (${numColumns})` +
+         ` exceeds the number of cells that a Google spreadsheet can contain.`);
   }
 
   // Now get the records.
-  let records = [];
-  let results;
   note(`Fetching ${expected.totalRecords.toLocaleString()} records from FOLIO …`, 30);
-  for (let offset = 0; offset < expected.totalRecords; offset += 100) {
-    endpoint = makeRangeQuery(firstESO, lastESO, 100, offset);
-    results = fetchJSON(endpoint, tenantId, token);
-    if (results.items) {
-      records.push.apply(records, results.items);
-    } else {
-      quit('Failed to get complete set of records',
-           `While downloading the item records for ${firstCN} – ${lastCN},` +
-           ' Boffo unexpectedly received an empty batch from FOLIO. It may' +
-           ' be due to a sudden network glitch or other temporary failure,' +
-           ' or it may indicate a deeper problem. Please wait a short time' +
-           ' then try the command again. If this situation repeats, please' +
-           ' report it to the developers.');
-    }
-    if (offset > 0 && (offset % 5000) == 0) {
-      note(`Fetched ${offset.toLocaleString()} records so far and still going …`, 30);
-    }
-  }
+  const makeQuery = makeRangeQuery.bind(null, firstESO, lastESO);
+  const records = getRecordsForQuery(makeQuery, expected.totalRecords, tenantId, token);
 
   // And we're done.
   writeResultsSheet(sortByShelvingOrder(records));
@@ -483,41 +464,22 @@ function getItemsForCN(cn, locationId) {
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
 
-  function makeQuery(offset = 0) {
+  function makeQuery(limit = 0, offset = 0) {
     // Search on the wildcarded call number at the given location.
     // 100 is the max that the Folio API will return for this query.
-    return baseUrl + `?limit=100&offset=${offset}&query=` +
+    return baseUrl + `?limit=${limit}&offset=${offset}&query=` +
           encodeURI(`effectiveLocationId==${locationId} AND ` +
                     `effectiveCallNumberComponents.callNumber=="${cn}"`);
   }
 
-  let endpoint = makeQuery(0);
-  let records = fetchJSON(endpoint, tenantId, token);
-  log(`FOLIO has ${records.totalRecords} items for ${cn} at location ${locationId}`);
+  // Do preliminary query to get the number of records.
+  let endpoint = makeQuery();
+  let results = fetchJSON(endpoint, tenantId, token);
+  log(`FOLIO has ${results.totalRecords} items for ${cn} at location ${locationId}`);
 
-  if (records.totalRecords > 0 && records.totalRecords <= 100) {
-    return sortByShelvingOrder(records.items);
-  } else if (records.totalRecords > 100) {
-    // The call above didn't get all of the records.
-    log('iterating to get all records');
-    let itemRecords = records.items;
-    let results;
-    for (let offset = 100; offset <= records.totalRecords; offset += 100) {
-      endpoint = makeQuery(offset);
-      results = fetchJSON(endpoint, tenantId, token);
-      if (results.items) {
-        itemRecords.push.apply(itemRecords, results.items);
-      } else {
-        quit(`Failed to get complete set of records for ${givenCN}.`,
-             ' Boffo unexpectedly received an empty batch from FOLIO. It' +
-             ' may be due to a sudden network glitch or other temporary'  +
-             ' failure, or it may indicate a deeper problem. Please wait' +
-             ' a few seconds, then try again. If this situation repeats,' +
-             ' please report it to the developers.');
-      }
-    }
-    log(`got ${itemRecords.length} item records`);
-    return sortByShelvingOrder(itemRecords);
+  // Now get the records.
+  if (results.totalRecords > 0) {
+    return getRecordsForQuery(makeQuery, results.totalRecords, tenantId, token);
   } else {
     // Get the location name so we can write it in the error message.
     const locName = getLocationsList().find(el => (el.id == locationId)).name;
@@ -533,6 +495,37 @@ function getItemsForCN(cn, locationId) {
     // This branch will never actually return, but do this for consistency:
     return [];
   }
+}
+
+/**
+ * Takes a function object, a total numbef of records to get, and the
+ * tenant ID and token, then iterates to get all the Folio records, and
+ * finally returns the array of record objects.
+ *
+ * The first argument (makeQuery) must be a function object that takes
+ * two parameters: the "limit" value to a Folio call, and the "offset"
+ * value.
+ */
+function getRecordsForQuery(makeQuery, totalRecords, tenantId, token) {
+  let records = [];
+  let results;
+  for (let offset = 0; offset <= totalRecords; offset += 100) {
+    results = fetchJSON(makeQuery(100, offset), tenantId, token);
+    if (results.items) {
+      records.push.apply(records, results.items);
+    } else {
+      quit(`Failed to get complete set of records`,
+           ' Boffo unexpectedly received an empty batch from FOLIO. It' +
+           ' may be due to a sudden network glitch or other temporary'  +
+           ' failure, or it may indicate a deeper problem. Please wait' +
+           ' a few seconds, then try again. If this situation repeats,' +
+           ' please report it to the developers.');
+    }
+    if (offset > 0 && (offset % 5000) == 0) {
+      note(`Fetched ${offset.toLocaleString()} records so far and still going …`, 30);
+    }
+  }
+  return records;
 }
 
 /**
