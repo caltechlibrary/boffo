@@ -1,5 +1,10 @@
 # Change log for Boffo
 
+## Version 1.8.0
+
+In this version, Boffo's function to search by call numbers is (hopefully) more forgiving of errors in the placement of spaces and periods.
+
+
 ## Version 1.7.1
 
 This version fixes a bug in fetching results from Folio that caused Boffo to return only the first 1000 results from searches that should have yielded more.
