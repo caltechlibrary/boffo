@@ -453,13 +453,16 @@ function getItemsForCN(cn, locationId) {
     cn = letters + numbers + restOfCN;
   }
 
-  // Insert wildcards in front of every period.
-  //   GV199.F3               -> GV199*.F3
-  //   GV199.3                -> GV199*.3
-  //   GV199.92 .B38 A3 1994  -> GV199*.92*.B38 A3 1994
-  //   GV199.92.F39 .F39 2011 -> GV199*.92*.F39*.F39 2011
-  //   HB3717 1929.E37 2015   -> HB3717 1929*.E37 2015
-  cn = cn.replace(/(\s*\.(?! ))/g, function($0, $1) { return '*.'; });
+  // Insert wildcards in strategic places. This is an effort to account for the
+  // following common errors seen in user inputs:
+  //   - missing a period (e.g., QC921.5 B9 versus QC921.5 .B9)
+  //   - adding or missing spaces (e.g., GV199 .F3 versus GV199.F3)
+  // Keep in mind that it doesn't matter whether the user's input follows
+  // correct LoC rules, because the entries in the database may have errors
+  // too. What we want is to account for errors in either source.
+  cn = cn.replace(/\s+\.(?! )/g, ' *');
+  cn = cn.replace(/\s+(?=[a-z])/gi, ' *');
+  cn = cn.replace(/(?<=[0-9])\.(?=[a-z])/gi, '*.');
 
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
