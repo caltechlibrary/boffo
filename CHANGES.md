@@ -1,5 +1,10 @@
 # Change log for Boffo
 
+## Version 1.9.0
+
+This version introduces a new pseudo-location called "Any" in the search-by-call-numbers command, letting the user search for a given call number or call number range at any location.
+
+
 ## Version 1.8.0
 
 In this version, Boffo's function to search by call numbers is (hopefully) more forgiving of errors in the placement of spaces and periods.
