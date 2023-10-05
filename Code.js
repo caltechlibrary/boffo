@@ -292,6 +292,8 @@ function menuItemFindByCallNumbers() {
 function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
   const htmlTemplate = HtmlService.createTemplateFromFile('call-numbers-form');
   const locationsList = getLocationsList();
+  // Prepend special value "Any" to the front of the list.
+  locationsList.unshift({name: "—Any—", id: "Any"});
   // Create the body of the <select> element on the page. This consists of
   // <option> elements, one for each Folio location name.
   htmlTemplate.locationSelectorsList = locationsList.map(el => {
@@ -377,11 +379,12 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
   // the first and last endpoints of the search. We can proceed.
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
+  const needLocation = (locationId == 'Any' ? false : true);
 
   function makeRangeQuery(eso1, eso2, limit = 0, offset = 0) {
     return baseUrl + `?limit=${limit}&offset=${offset}&query=` +
-      encodeURI(`effectiveLocationId==${locationId}` +
-                ` AND effectiveShelvingOrder>="${eso1}"` +
+      encodeURI((needLocation ? `effectiveLocationId==${locationId} AND ` : '') +
+                `effectiveShelvingOrder>="${eso1}"` +
                 ` AND effectiveShelvingOrder<="${eso2}"`);
   }
 
@@ -403,16 +406,22 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
       log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
     } else {
       // Get the location name so we can write it in the error message.
-      const locName = getLocationsList().find(el => (el.id == locationId)).name;
-      quit('No results for this combination of call number range and location',
+      let where = '';
+      let alsoWhere = '';
+      if (needLocation) {
+        const locName = getLocationsList().find(el => (el.id == locationId)).name;
+        where = ` at location "${locName}"`;
+        alsoWhere = 'as well as the location';
+      }
+      quit('Could not find any items for this call number range',
            `Searching FOLIO for the call number range ${firstCN} – ${lastCN}`  +
-           ` (in either order) at location "${locName}" produced no results.`  +
-           ' Please verify the call numbers (paying special attention to any'  +
-           ' period or space characters) as well as the location. If they are' +
-           ' all correct, it is possible the failure occurred due to a sudden' +
-           ' network glitch or other temporary problem. Please wait a short' +
-           ' time, then try the command again. If this situation repeats,' +
-           ' please report it to the developers.');
+           ` (in either order)${where} produced no results. Please verify the` +
+           ' the call numbers (paying special attention to period and space'   +
+           ' characters)${alsoWhere}. If they are all correct, it is possible' +
+           ' the failure occurred due to a temporary network glitch or other'  +
+           ' temporary problem. Please wait a short time, then try the same'   +
+           ' search again. If this situation repeats, please report it to the' +
+           ' developers.');
     }
   }
 
@@ -466,13 +475,14 @@ function getItemsForCN(cn, locationId) {
 
   const {folioUrl, tenantId, token} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
+  const needLocation = (locationId == 'Any' ? false : true);
 
   function makeQuery(limit = 0, offset = 0) {
     // Search on the wildcarded call number at the given location.
     // 100 is the max that the Folio API will return for this query.
     return baseUrl + `?limit=${limit}&offset=${offset}&query=` +
-          encodeURI(`effectiveLocationId==${locationId} AND ` +
-                    `effectiveCallNumberComponents.callNumber=="${cn}"`);
+      encodeURI((needLocation ? `effectiveLocationId==${locationId} AND ` : '') +
+                `effectiveCallNumberComponents.callNumber=="${cn}"`);
   }
 
   // Do preliminary query to get the number of records.
@@ -485,15 +495,18 @@ function getItemsForCN(cn, locationId) {
     return getRecordsForQuery(makeQuery, results.totalRecords, tenantId, token);
   } else {
     // Get the location name so we can write it in the error message.
-    const locName = getLocationsList().find(el => (el.id == locationId)).name;
-    quit(`Could not find an item with call number "${givenCN}" at this location`,
-         'Searching in FOLIO did not return any items at the location'    +
-         ` "${locName}" for the call number as written. Please verify`    +
-         ` the call number "${givenCN}" (paying special attention to`     +
-         ' periods and space characters) and the location. If they are'   +
-         ' all correct, it is possible the failure occurred due to a'     +
-         ' sudden network glitch or other temporary problem. Please wait' +
-         ' a short time, then try the command again. If this situation,'  +
+    let where = '';
+    if (needLocation) {
+      const locName = getLocationsList().find(el => (el.id == locationId)).name;
+      where = ` at location "${locName}"`;
+    }
+    quit(`Could not find an item with call number "${givenCN}"${where}`,
+         'FOLIO did not return any items for the call number as written.'   +
+         ` Please verify the call number "${givenCN}" (paying attention to` +
+         ' periods and space characters) and the location. If they are all' +
+         ' correct, it is possible the failure occurred due to a temporary' +
+         ' network glitch or other temporary problem. In that case, please' +
+         ' wait a short time, then try the same search again. If the error' +
          ' repeats, please report it to the developers.');
     // This branch will never actually return, but do this for consistency:
     return [];
