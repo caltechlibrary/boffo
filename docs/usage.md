@@ -33,7 +33,7 @@ If this is the first time you've used Boffo, it will first request your FOLIO ac
 
 ## Search by call numbers
 
-Another feature of Boffo is its ability to retrieve all item records at a given location given a range of call numbers. You do not first need to select any barcodes from the spreadsheet to run this command. Simply pull down the Boffo menu and select _Find items in call number range_:
+Another feature of Boffo is its ability to retrieve all item records given a call number or a range of call numbers, optionally constrained by location. You do not first need to select any barcodes from the spreadsheet to run this command. Simply pull down the Boffo menu and select _Find items in call number range_:
 
 <figure>
 <img class="shadow border" width="550px" src="_static/media/menu-item-find-by-call-numbers.png">
@@ -50,6 +50,8 @@ The dialog asks for three pieces of information: the starting and ending call nu
 After filling in the values and choosing a location, click the <span class="button color-primary">Submit</span> button to run the search. Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ran it, and populate the sheet with item records using the same format and set of record fields as the  _Look up barcodes in FOLIO_ command.
 
 Care must be taken when searching by call numbers. It is easy to accidentally add or omit spaces or mistype other parts of call numbers; moreover, the database itself may have inconsistencies or errors in the values stored. To help with this problem, Boffo tries to be flexible: if a given call number does not yield a match, Boffo tries to look up a few alternatives it creates by inserting or removing spaces at strategic places in the given call number.
+
+Finally, note that if there are many results (for example, over 10,000), it make take a long time for the Google sheet contents to be written. During this time, the results in the sheet may appear to be incomplete. Some patience is recommended when dealing with large result sets.
 
 
 ## Select record fields
