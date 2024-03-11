@@ -1,0 +1,70 @@
+# ╭─────────────────── Notice ── Notice ── Notice ───────────────────╮
+# │ This is a custom Baler workflow file. It is different from the   │
+# │ sample workflow suggested for users because it is designed to    │
+# │ allow testing Baler. DO NOT COPY THIS FILE; instead, use the     │
+# │ sample workflow file named "sample-workflow.yml" from the Baler  │
+# │ source repository at https://github.com/caltechlibrary/baler/.   │
+# ╰─────────────────── Notice ── Notice ── Notice ───────────────────╯
+
+name: Bad Link Reporter
+
+# Configure this section ─────────────────────────────────────────────
+
+env:
+  # Files examined by the workflow:
+  files: '*.md'
+
+  # Label assigned to issues created by this workflow:
+  labels: bug
+
+  # Number of previous issues to check for duplicate reports.
+  lookback: 10
+
+  # Time (sec) to wait on an unresponsive URL before trying once more.
+  timeout: 15
+
+  # Optional file containing a list of URLs to ignore, one per line:
+  ignore: .github/workflows/ignored-urls.txt
+
+on:
+  schedule:  # Cron syntax is: "min hr day-of-month month day-of-week"
+    - cron: 00 04 * * 1
+  push:
+    paths:
+      - .github/workflows/bad-link-reporter.yml
+      - .github/workflows/ignored-urls.txt
+  workflow_dispatch:
+    inputs:
+      files:
+        description: Comma-separated paths or regexp's
+        default: '*.md'
+      labels:
+        description: Comma-separated issue labels
+        default: bug
+      ignore:
+        description: File containing URLs to ignore
+        default: .github/workflows/ignored-urls.txt
+      lookback:
+        description: No. of previous issues to check
+        default: 10
+      debug:
+        description: Run in debug mode
+        type: boolean
+
+# The rest of this file should be left as-is ─────────────────────────
+
+run-name: Test links in Markdown files
+jobs:
+  Baler:
+    name: Link checker and reporter
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: caltechlibrary/baler@main
+        with:
+          files:    ${{github.event.inputs.files    || env.files}}
+          labels:   ${{github.event.inputs.labels   || env.labels}}
+          ignore:   ${{github.event.inputs.ignore   || env.ignore}}
+          timeout:  ${{github.event.inputs.timeout  || env.timeout}}
+          lookback: ${{github.event.inputs.lookback || env.lookback}}
