@@ -55,7 +55,7 @@
   "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
   "downloadUrl": "https://github.com/caltechlibrary/boffo/releases",
   "softwareHelp": "http://caltechlibrary.github.io/boffo",
-  "relatedLink": "https://data.caltech.edu/records/4xbk4-9ek66",
+  "relatedLink": "https://data.caltech.edu/records/dqmsp-w5591",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "JavaScript",
