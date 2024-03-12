@@ -1,23 +1,23 @@
 cff-version: 1.2
-message: "If you use this software, please cite it using these metadata."
-title: "Boffo"
-abstract: "Boffo (Barcodes from FOLIO) is a Google Apps script that looks up item barcodes in a FOLIO instance."
+message: If you use this software, please cite it using these metadata.
 authors:
   - family-names: Hucka
     given-names: Michael
-    affiliation: "Caltech Library"
-    orcid: "https://orid.org/0000-0001-9105-5960"
-version: "1.9.0"
-date-released: "2023-10-05"
-doi: null
-url: "https://caltechlibrary.github.io/boffo"
-repository-code: "https://github.com/caltechlibrary/boffo"
-license-url: "https://github.com/caltechlibrary/boffo/blob/main/LICENSE"
+    affiliation: Caltech Library
+    orcid: https://orid.org/0000-0001-9105-5960
+title: Boffo
+abstract: Boffo (Barcodes from FOLIO) is a Google Apps script that looks up item barcodes in a FOLIO instance.
+version: 1.9.0
+date-released: 2023-10-05
+doi: 10.22002/4xbk4-9ek66
+url: https://caltechlibrary.github.io/boffo
+repository-code: https://github.com/caltechlibrary/boffo
+license-url: https://github.com/caltechlibrary/boffo/blob/main/LICENSE
 type: software
 keywords:
-  - "FOLIO"
-  - "Google Apps Scripts"
-  - "Google Sheets"
-  - "automation"
-  - "library"
-  - "software"
+  - FOLIO
+  - Google Apps Scripts
+  - Google Sheets
+  - automation
+  - library
+  - software
