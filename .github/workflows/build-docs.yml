@@ -14,8 +14,10 @@ run-name: Build gh-pages for ${{inputs.release_tag || 'latest release'}}
 
 on:
   push:
-    branches: ['main']
-    paths: ['docs/**']
+    branches:
+      - main
+    paths:
+      - docs/**
 
 jobs:
   deploy:

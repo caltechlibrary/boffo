@@ -4,7 +4,7 @@
   "name": "Boffo",
   "identifier": "boffo",
   "description": "Boffo (Barcodes from FOLIO) is a Google Apps script that looks up item barcodes in a FOLIO instance.",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "datePublished": "2023-10-05",
   "dateCreated": "2023-06-08",
   "author": [
@@ -45,7 +45,7 @@
     "name": "California Institute of Technology"
   }
   ],
-  "copyrightYear": 2023,
+  "copyrightYear": 2024,
   "license": "https://github.com/caltechlibrary/boffo/blob/main/LICENSE",
   "isAccessibleForFree": true,
   "url": "https://caltechlibrary.github.io/boffo",
@@ -55,7 +55,7 @@
   "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
   "downloadUrl": "https://github.com/caltechlibrary/boffo/releases",
   "softwareHelp": "http://caltechlibrary.github.io/boffo",
-  "relatedLink": "https://data.caltech.edu/records/null",
+  "relatedLink": "https://data.caltech.edu/records/4xbk4-9ek66",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "JavaScript",

@@ -16,6 +16,7 @@ The words of which the initial letter is capitalized have meanings defined under
 ### Definitions
 
 For the purposes of this Privacy Policy:
+
 - **Account** means a unique account created for You to access our Service or parts of our Service.
 - **Affiliate** means an entity that controls, is controlled by or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.
 - **Application** refers to Boffo, the software program provided by the Company.
@@ -53,12 +54,14 @@ We may also collect information that Your browser sends whenever You visit our S
 ### Use of Your Personal Data
 
 The Company may use Personal Data for the following purposes:
+
 - **To provide and maintain our Service**, including to monitor the usage of our Service.
 - **For the performance of a contract:** the development, compliance and undertaking of the purchase contract for the products, items or services You have purchased or of any other contract with Us through the Service.
 - **To manage Your requests:** To attend and manage Your requests to Us.
 - **For other purposes**: We may use Your information for other purposes, such as data analysis, identifying usage trends, determining the effectiveness of our promotional campaigns and to evaluate and improve our Service, products, services, marketing and your experience.
 
 We may share Your personal information in the following situations:
+
 - **With Service Providers:** We may share Your personal information with Service Providers to monitor and analyze the use of our Service,  to contact You.
 - **With Your consent**: We may disclose Your personal information for any other purpose with Your consent.
 
@@ -103,6 +106,7 @@ Under certain circumstances, the Company may be required to disclose Your Person
 #### Other legal requirements
 
 The Company may disclose Your Personal Data in the good faith belief that such action is necessary to:
+
 - Comply with a legal obligation
 - Protect and defend the rights or property of the Company
 - Prevent or investigate possible wrongdoing in connection with the Service
@@ -138,5 +142,6 @@ You are advised to review this Privacy Policy periodically for any changes. Chan
 ## Contact Us
 
 If you have any questions about this Privacy Policy, You can contact us:
-- By email: helpdesk@library.caltech.edu
+
+- By email: [`helpdesk@library.caltech.edu`](helpdesk@library.caltech)
 - By visiting this page on our website: [https://github.com/caltechlibrary/boffo/issues](https://github.com/caltechlibrary/boffo/issues)

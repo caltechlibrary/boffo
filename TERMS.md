@@ -15,6 +15,7 @@ The words of which the initial letter is capitalized have meanings defined under
 ### Definitions
 
 For the purposes of these Terms and Conditions:
+
 - **Application** means the software program provided by the Company downloaded by You on any electronic device, named Boffo.
 - **Google Workspace Marketplace** means the digital distribution service operated and developed by Google Inc. in which the Application has been downloaded.
 - **Country** refers to: United States.
@@ -101,5 +102,6 @@ By continuing to access or use Our Service after those revisions become effectiv
 ## Contact Us
 
 If you have any questions about these Terms and Conditions, You can contact us:
-- By email: helpdesk@library.caltech.edu
+
+- By email: [`helpdesk@library.caltech.edu`](helpdesk@library.caltech)
 - By visiting this page on our website: [https://github.com/caltechlibrary/boffo/issues](https://github.com/caltechlibrary/boffo/issues)

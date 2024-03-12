@@ -1,9 +1,9 @@
-# Boffo<img width="70em" align="right" style="display: block; margin: auto auto 2em 2em"  src="_static/media/boffo-icon.svg">
+# Boffo<img width="70em" align="right" style="display: block; margin: auto auto 2em 2em"  src="_static/media/boffo-icon.svg"  alt="Boffo logo" title="Boffo logo. Artwork originally by Utkarsh Verma, https://github.com/n3r4zzurr0">
 
 Boffo (a loose acronym of _**B**arc**o**des **f**rom **FO**LIO_, and pronounced like [the noun](https://en.wiktionary.org/wiki/boffo)) is an add-on for Google Sheets written by the Caltech Library. Among other things, it lets you select item barcodes in a spreadsheet and retrieve information about the item records from a FOLIO server. Boffo creates a new sheet titled "Item Data" in the spreadsheet where you ran it, and adds the results of the item lookups to the new sheet.
 
 <figure>
-<img class="shadow border" width="800px" src="_static/media/invoking-look-up-barcodes.png">
+<img class="shadow border" width="800px" src="_static/media/invoking-look-up-barcodes.png" alt="Screenshot of spreadsheet with Boffo">
 <figcaption>Select some barcodes in your spreadsheet and select the <em>Look up barcodes in FOLIO</em> menu item.
 </figcaption>
 </figure>
@@ -15,7 +15,7 @@ Boffo (a loose acronym of _**B**arc**o**des **f**rom **FO**LIO_, and pronounced 
 </figure>
 
 <figure>
-<img class="shadow border" width="800px" src="_static/media/sample-output.png">
+<img class="shadow border" width="800px" src="_static/media/sample-output.png" alt="Screenshot of sample results from Boffo">
 <figcaption>Boffo creates a new sheet in the same spreadsheet with the results of the lookup.</figcaption>
 </figure>
 
