@@ -3,10 +3,11 @@
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items.
 
 [![License](https://img.shields.io/badge/License-BSD--like-lightgrey.svg?style=flat-square)](https://github.com/caltechlibrary/boffo/blob/main/LICENSE)
-[![made-with-javascript](https://img.shields.io/badge/Made%20with-JavaScript-yellow.svg?style=flat-square)](https://www.javascript.com)
-[![Boffo](https://img.shields.io/badge/Google%20Marketplace-Boffo-1f425f.svg?style=flat-square&color=orange)](https://workspace.google.com/marketplace/app/boffo/830370816631)
-[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=purple&label=Latest%20release)](https://github.com/caltechlibrary/boffo/releases)
+[![made-with-javascript](https://img.shields.io/badge/Made%20with-JavaScript-F7DC6F.svg?style=flat-square)](https://www.javascript.com)
+[![Google Sheets](https://img.shields.io/badge/Sheets-1EbC61?style=flat-square&label=Google&logo=google-sheets&logoColor=white)](https://www.google.com/sheets/about/)
+[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/boffo.svg?style=flat-square&color=purple&label=Release)](https://github.com/caltechlibrary/boffo/releases)
 [![DOI](https://img.shields.io/badge/dynamic/json.svg?label=DOI&style=flat-square&colorA=gray&colorB=blue&query=$.pids.doi.identifier&uri=https://data.caltech.edu/api/records/4xbk4-9ek66/versions/latest)](https://data.caltech.edu/records/4xbk4-9ek66/latest)
+[![Boffo](https://img.shields.io/badge/Google%20Marketplace-Boffo-1f425f.svg?style=flat-square&color=orange)](https://workspace.google.com/marketplace/app/boffo/830370816631)
 
 
 ## Table of contents
