@@ -1,4 +1,4 @@
-# Boffo<img width="12%" align="right" src=".graphics/boffo-icon.png">
+# Boffo<img alt="Boffo logo" title="Boffo logo. Artwork originally by Utkarsh Verma, https://github.com/n3r4zzurr0" width="12%" align="right" src=".graphics/boffo-icon.png">
 
 Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getting data about FOLIO items.
 
@@ -19,7 +19,7 @@ Boffo (_**B**arc**o**des **f**rom **FO**LIO_) is a Google Sheet script for getti
 * [Getting help](#getting-help)
 * [Contributing](#contributing)
 * [License](#license)
-* [Acknowledgments](#authors-and-acknowledgments)
+* [Acknowledgments](#acknowledgments)
 
 
 ## Introduction
@@ -39,22 +39,23 @@ If you're Caltech Library staff, Boffo is available to you from the Google Marke
 Once installed as an Add-on on a Google Sheet, Boffo will present itself as a menu item in the _Extensions_ menu across the top of the sheet. Selecting the _Boffo_ item in the _Extensions_ menu will present several items in a submenu:
 
 <p align="center">
-<img width="550px" src="docs/_static/media/boffo-menu-items.png">
+<img width="550px" src="docs/_static/media/boffo-menu-items.png" alt="Screenshot of Boffo menu">
 </p>
 
 Boffo's main function is _Look up barcodes in FOLIO_ and its use is very simple:
+
 1. Select some item barcodes in your Google spreadsheet
 2. Pull down the _Extensions_ menu
 3. Select _Look up barcodes in FOLIO_ from the Boffo menu
 
 <p align="center">
-<img width="90%" src="docs/_static/media/invoking-look-up-barcodes.png">
+<img width="90%" src="docs/_static/media/invoking-look-up-barcodes.png" alt="Screenshot of spreadsheet with Boffo">
 </p>
 
 Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ran it, then add the results of the item lookups to the new sheet.
 
 <p align="center">
-<img width="90%" src="docs/_static/media/sample-output.png">
+<img width="90%" src="docs/_static/media/sample-output.png" alt="Screenshot of sample results from Boffo">
 </p>
 
 If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
@@ -95,6 +96,6 @@ This work was funded by the California Institute of Technology Library.
 <div align="center">
   <br>
   <a href="https://www.caltech.edu">
-    <img width="100" height="100" src="https://github.com/caltechlibrary/boffo/raw/main/.graphics/caltech-round.png">
+    <img width="100" height="100" alt="Caltech logo" src="https://github.com/caltechlibrary/boffo/raw/main/.graphics/caltech-round.png">
   </a>
 </div>
