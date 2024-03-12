@@ -1,5 +1,19 @@
 # Change log for Boffo
 
+## Version 1.9.1
+
+There are no functional changes in this release; all the changes involve build automation and updates to things like copyright statements.
+
+* Added `alt` text to images in Markdown files.
+* Added a workflow to run [Baler](https://github.com/caltechlibrary/baler).
+* Added configurations and workflows for a Markdown linter, a YAML file linter, and a JSON file linter.
+* Fixed linter warnings in various files.
+* Updated the DOI link in the `README.md` file to use a URL that automatically resolves to the latest archived release of Boffo in [CaltechDATA](https://data.caltech.edu), so that the file does not have to be updated upon every release.
+* Add a `.github/SECURITY.md` file, like a good GitHub citizen.
+* Updated `Makefile` to incorporate improvements developed while working on other software.
+* Updated copyright year where appropriate.
+
+
 ## Version 1.9.0
 
 This version introduces a new pseudo-location called "Any" in the search-by-call-numbers command, letting the user search for a given call number or call number range at any location.
