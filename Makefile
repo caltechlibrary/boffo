@@ -118,7 +118,7 @@ report: vars
 #: Continually watch files & upload changes to Google GAS project.
 watch:
 	$(call require,clasp)
-	clasp -P $(CURDIR)/.clasp.json.caltech push --watch
+	clasp -P $(CURDIR)/.clasp.json.caltech --allow-symlinks push --watch
 
 
 # make lint & make test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

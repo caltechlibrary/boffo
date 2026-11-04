@@ -92,8 +92,11 @@ jobs:
           }
 
       # clasp 3 needs an absolute path to a project file not named .clasp.json.
+      # It skips symbolic links unless told otherwise, and a push replaces
+      # every file in the project, so without --allow-symlinks the project
+      # loses codemeta-symlink.html, which the About dialog reads.
       - name: Push the files to Apps Script
-        run: clasp -P "$PWD/.clasp.json.caltech" push --force
+        run: clasp -P "$PWD/.clasp.json.caltech" --allow-symlinks push --force
 
       - name: Create a version
         env:
