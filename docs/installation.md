@@ -1,6 +1,6 @@
 # Installation
 
-[Installing Boffo from the Google Marketplace](#using-google-marketplace) is the simplest way to get Boffo, but it is currently only available as an "internal" Google Workspace add-on limited to Caltech Library staff. Users who are not members of the Caltech Library staff will have to use one of the [alternate installation methods described below](#directly-from-source) to get it either from the public Google Apps Script Project or the GitHub repository.
+[Installing Boffo from the Google Marketplace](#using-google-marketplace) is the simplest way to get Boffo, but it is currently only available as an "internal" Google Workspace add-on limited to Caltech Library staff. Users who are not members of the Caltech Library staff will have to use one of the [alternate installation methods described below](#directly-from-source) to install it from the source files in the GitHub repository.
 
 
 ## Using Google Marketplace
@@ -75,55 +75,53 @@ When that dialog goes away, close the Google Workspace Marketplace dialog, and n
 
 ## Directly from source
 
-If you are not at Caltech, you will not be able find Boffo in the Google Marketplace for add-ons. Instead, you will have to install the code from the source files in some way. The following subsections describe two possible methods.
-
-### Copying the Google Apps Script project
-
-This approach does not require the use of command-line tools, but it does require some patience and care because some of the steps below are quite unintuitive.
-
-1. (Optional, but recommended for your sanity.) Create a folder in your Google Drive where you will put the Boffo project files that will be created in the following steps. For the purposes of this documentation, let's assume that this folder is named "Boffo example".
-2. Go to the [public folder for Boffo in Google Drive](https://drive.google.com/drive/folders/1PJErJ2ggFqT5H7pQkYr0wrpnf6YorHc-?usp=share_link). It should look more or less like what is shown in the screenshot below.<p align="center"><img width="800px" alt="The public Google Drive folder containing Boffo" src="_static/media/boffo-google-drive-folder.png"></p>
-3. Right-click over the apps script project named "Boffo (public copy)" and select _Make a copy_ from the contextual menu that pops up.<p align="center"><img width="800px" alt="The contextual menu" src="_static/media/google-drive-make-copy.jpg"></p>
-4. Go to the location where the copy ended up (usually the top level of your Google Drive) and look for the newly-created apps script project named "Copy of Boffo (public copy)". Right-click on it, and select _Move to_ from the contextual menu that pops-up.<p align="center"><img width="800px" alt="The 'Move to' item in the contextual menu" src="_static/media/google-drive-move.png"></p>
-5. From the move dialog, select the destination (in this example, the folder named "Boffo example" suggested in step #1 above).<p align="center"><img width="800px" alt="The move dialog" src="_static/media/google-drive-move-destination.png"></p>
-6. Navigate to the destination folder where you put it in your Google Drive.
-7. (Optional, but why not?) Rename the project file "Copy of Boffo (public copy)" to something less annoying, such as just "Boffo".<p align="center"><img width="800px" alt="Renaming the folder" src="_static/media/google-drive-rename.png"></p>
-8. Create a spreadsheet in the folder next to the "Boffo" apps script project. For the purposes of this documentation, assume this spreadsheet is cleverly named "Example spreadsheet".<p align="center"><img width="800px" alt="The entry for the example spreadsheet shown in Google Drive" src="_static/media/google-drive-example-spreadsheet.png"></p>
-9. Double-click on the apps script project (not the spreadsheet!). It should look more or less like the screenshot below.<p align="center"><img width="800px" alt="Boffo in the Google Apps editor" src="_static/media/gas-editor.png"></p>
-10. Click on the blue _Deploy_ button at the top of the page, and select _Test deployments_ from the pull-down menu.<p align="center"><img width="800px" alt="The 'Test deployments' item in the Deploy menu" src="_static/media/gas-editor-deployments.png"></p>
-11. In dialog that opens next, note the list in the left-hand sidebar shows the item titled "Google Workspace Add-on" as the default. This is the wrong deployment to use for our purposes.<p align="center"><img width="800px" alt="The sidebar in the dialog shown after selecting 'Test deployments'" src="_static/media/gas-editor-deployments-wrong-kind.png"></p>
-12. Changing the deployment takes two steps. Click the gear icon next to _Select type_ and a pop-up menu will be shown. In this pop-up, you will initially find a check-mark next to the item "Google Workspace Add-on". Select it to _uncheck_ that item. The pop-up will disappear; click on the gear icon a second time, and now select the item titled "Editor Add-on". You should end up with the configuration shown in the screenshot below.<p align="center"><img width="800px" alt="Where to find the correct item in the menus" src="_static/media/gas-editor-deployments-right-kind.png"></p>
-13. With the configuration changed to "Editor Add-on", click on the button _Create new test_,<p align="center"><img width="800px" alt="The 'Create new test' button" src="_static/media/gas-editor-create-test.png"></p>
-14. In the dialog that pops up, click on the up arrow icon in the 3rd field (where it initially shows "No document selected").<p align="center"><img width="800px" alt="Button to click in the next dialog" src="_static/media/gas-editor-select-test-document.png"></p>
-15. In the Google Drive selection dialog that is shown next, select the spreadsheet created in step #8 above. and click the blue _Insert_ button in the selection dialog.<p align="center"><img width="800px" alt="The next dialog" src="_static/media/gas-editor-select-spreadsheet.png"></p>
-16. The selection dialog will close, and back in the test deployments dialog, click the blue _Save test_ button.<p align="center"><img width="800px" alt="The dialog to save the test" src="_static/media/gas-editor-save-test.png"></p>
-17. We're not done yet! The deployments dialog will change, and now will look like the screenshot below. Click the circle next on the line with the name of the spreadsheet you selected.<p align="center"><img width="800px" alt="The checkbox for selecting the Example spreadsheet" src="_static/media/gas-editor-click-radio-box.png"></p>
-18. Now click on the blue word _Execute_ which will become active as a result of clicking the circle in the previous step.<p align="center"><img width="800px" alt="The Execute button" src="_static/media/gas-editor-click-execute.png"></p>
-19. In an exciting development, the deployment dialog will close and your spreadsheet will open in a new tab or window in your browser. Click on the Extensions menubar item …<p align="center"><img width="800px" alt="Blank Google sheet, with an arrow pointing to the Extensions menu item" src="_static/media/gas-editor-spreadsheet.png"></p>
-20. … and here, finally, Boffo's menu will be available in your spreadsheet. And it took only 20 steps to get to this point. Easy, wasn't it?<p align="center"><img width="800px" alt="Where to find Boffo in the Extensions menu" src="_static/media/gas-editor-boffo-installed.png"></p>
+If you are not at Caltech, you will not be able to find Boffo in the Google Marketplace for add-ons. Instead, you can push Boffo’s source files from the [GitHub repository](https://github.com/caltechlibrary/boffo) to an Apps Script project of your own with [`clasp`](https://github.com/google/clasp), Google’s command-line tool for Apps Script, and then run it in a spreadsheet as a test deployment. You will need [git](https://git-scm.com) and [Node.js](https://nodejs.org) version 20 or later.
 
 
-### Using `clasp` to push source files to a GAS project
+### Pushing the source files with `clasp`
 
-If you are comfortable with using command-line tools and GitHub, and perhaps want to change Boffo or use it as a starting point for other projects, you can follow the process described next.
+1. Clone the [GitHub repository for Boffo](https://github.com/caltechlibrary/boffo) to a directory on your computer, if you have not already done so.
+2. Turn on the Google Apps Script API for your Google account in your [Apps Script settings](https://script.google.com/home/usersettings). `clasp` cannot change your projects without it.
+3. Install `clasp` and log in to your Google account with it. The login opens a page in your browser where you authorize `clasp`.
 
-1. Clone the [GitHub project for Boffo](https://github.com/caltechlibrary/boffo) to a local directory on your computer, if you have not already done so.
-2. Install the command-line utility [`clasp`](https://github.com/google/clasp) if you do not already have it. It lets you maintain your Google Apps Script project files in GitHub and edit them locally, and push them from your local computer to a Google Apps Script project.
-3. Create a new Google Apps Script project in your Google Drive.
-4. In the Apps Script project interface for this newly-created project, click on the gear icon in the left-hand column.<p align="center"><img width="800px" alt="The gear icon in the sidebar" src="_static/media/new-project.png"></p>
-5. From the project settings page, copy the Script ID.<p align="center"><img width="800px" alt="Where to find the unique id for the script" src="_static/media/copy-script-id.png"></p>
-6. In your local clone of the Boffo repository, open the file `.clasp.json` in a text editor, and change the value of the field `scriptId` to the value you copied in step #5. For example, if the value you copied was `1hio_6Izyd4908yE4rRy9wUjyIuh0z3jtxy2bb_zBPy9YtPVC6Bh-fv7`, you would change the contents of `.clasp.json` to be
+    ```sh
+    npm install --global @google/clasp
+    clasp login
+    ```
+
+4. (Optional, but recommended for your sanity.) Create a folder in your Google Drive for the Boffo project and the spreadsheet you will use it in. This documentation assumes the folder is named “Boffo example”.
+5. In that folder, click _New_, then _More_, then _Google Apps Script_. Google opens a new project named “Untitled project” in the Apps Script editor. Click on the name and change it to “Boffo”.
+6. Click on the gear icon in the left-hand column of the Apps Script editor.<p align="center"><img width="800px" alt="The gear icon in the sidebar" src="_static/media/new-project.png"></p>
+7. From the project settings page, copy the Script ID.<p align="center"><img width="800px" alt="Where to find the unique id for the script" src="_static/media/copy-script-id.png"></p>
+8. In your local clone of the Boffo repository, create a file named `.clasp.json` that holds the Script ID you copied in step #7. For example, if the value you copied was `1hio_6Izyd4908yE4rRy9wUjyIuh0z3jtxy2bb_zBPy9YtPVC6Bh-fv7`, the contents of `.clasp.json` would be
 
     ```json
     {"scriptId": "1hio_6Izyd4908yE4rRy9wUjyIuh0z3jtxy2bb_zBPy9YtPVC6Bh-fv7"}
     ```
 
-7. Now run `clasp push` to push the Boffo source files to the (empty, freshly-created) Google Apps Script project:
+9. In the same directory, run `clasp push` to push the Boffo source files to your new Apps Script project. When `clasp` asks whether to overwrite the manifest file, answer yes; Boffo’s manifest, `appsscript.json`, replaces the new project’s default one.
 
     ```sh
     clasp push
     ```
 
-    Google will ask you to authorize the transfer. Follow the directions to do so.
+To update Boffo later, run `git pull` in your clone to get the latest release, then run `clasp push` again.
 
-After this process, you should end up with a copy of the Boffo source files in your Google Apps Project. From there, you can edit the application as well as deploy the new version in your spreadsheets by following a process similar to the one described in the previous section.
+
+### Running Boffo in a spreadsheet
+
+Boffo runs in a spreadsheet as a test deployment of your Apps Script project.
+
+1. Create a spreadsheet in the “Boffo example” folder, next to the “Boffo” Apps Script project. For the purposes of this documentation, assume this spreadsheet is cleverly named “Example spreadsheet”.<p align="center"><img width="800px" alt="The entry for the example spreadsheet shown in Google Drive" src="_static/media/google-drive-example-spreadsheet.png"></p>
+2. Double-click on the apps script project (not the spreadsheet!). It should look more or less like the screenshot below.<p align="center"><img width="800px" alt="Boffo in the Google Apps editor" src="_static/media/gas-editor.png"></p>
+3. Click on the blue _Deploy_ button at the top of the page, and select _Test deployments_ from the pull-down menu.<p align="center"><img width="800px" alt="The 'Test deployments' item in the Deploy menu" src="_static/media/gas-editor-deployments.png"></p>
+4. In dialog that opens next, note the list in the left-hand sidebar shows the item titled "Google Workspace Add-on" as the default. This is the wrong deployment to use for our purposes.<p align="center"><img width="800px" alt="The sidebar in the dialog shown after selecting 'Test deployments'" src="_static/media/gas-editor-deployments-wrong-kind.png"></p>
+5. Changing the deployment takes two steps. Click the gear icon next to _Select type_ and a pop-up menu will be shown. In this pop-up, you will initially find a check-mark next to the item "Google Workspace Add-on". Select it to _uncheck_ that item. The pop-up will disappear; click on the gear icon a second time, and now select the item titled "Editor Add-on". You should end up with the configuration shown in the screenshot below.<p align="center"><img width="800px" alt="Where to find the correct item in the menus" src="_static/media/gas-editor-deployments-right-kind.png"></p>
+6. With the configuration changed to "Editor Add-on", click on the button _Create new test_,<p align="center"><img width="800px" alt="The 'Create new test' button" src="_static/media/gas-editor-create-test.png"></p>
+7. In the dialog that pops up, click on the up arrow icon in the 3rd field (where it initially shows "No document selected").<p align="center"><img width="800px" alt="Button to click in the next dialog" src="_static/media/gas-editor-select-test-document.png"></p>
+8. In the Google Drive selection dialog that is shown next, select the spreadsheet created in step #1 above. and click the blue _Insert_ button in the selection dialog.<p align="center"><img width="800px" alt="The next dialog" src="_static/media/gas-editor-select-spreadsheet.png"></p>
+9. The selection dialog will close, and back in the test deployments dialog, click the blue _Save test_ button.<p align="center"><img width="800px" alt="The dialog to save the test" src="_static/media/gas-editor-save-test.png"></p>
+10. We're not done yet! The deployments dialog will change, and now will look like the screenshot below. Click the circle next on the line with the name of the spreadsheet you selected.<p align="center"><img width="800px" alt="The checkbox for selecting the Example spreadsheet" src="_static/media/gas-editor-click-radio-box.png"></p>
+11. Now click on the blue word _Execute_ which will become active as a result of clicking the circle in the previous step.<p align="center"><img width="800px" alt="The Execute button" src="_static/media/gas-editor-click-execute.png"></p>
+12. In an exciting development, the deployment dialog will close and your spreadsheet will open in a new tab or window in your browser. Click on the Extensions menubar item …<p align="center"><img width="800px" alt="Blank Google sheet, with an arrow pointing to the Extensions menu item" src="_static/media/gas-editor-spreadsheet.png"></p>
+13. … and here, finally, Boffo's menu will be available in your spreadsheet. Easy, wasn't it?<p align="center"><img width="800px" alt="Where to find Boffo in the Extensions menu" src="_static/media/gas-editor-boffo-installed.png"></p>

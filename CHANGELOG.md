@@ -22,6 +22,7 @@ This version updates how Boffo logs in to FOLIO, for FOLIO servers that accept o
 * The change log is now named `CHANGELOG.md` and follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 * Releases are made with GitHub Actions workflows instead of `make` targets. They update the version metadata and the change log, open a draft GitHub release, record the DOI after CaltechDATA archives the release, and push the release to Apps Script. The new _Releasing Boffo_ page in the documentation describes them.
 * A single _Lint_ workflow runs all the linters on pull requests and on `main`.
+* The instructions for installing Boffo outside Caltech use `clasp` to push the source files to your own Apps Script project. The public copy of the Apps Script project in Google Drive no longer gets updates, and the instructions don’t use it.
 
 ### Fixed
 
