@@ -1,0 +1,75 @@
+# Summary: GitHub Actions workflow to run the linters on Boffo's files.
+#
+# Each linter is a separate job, so a failure in one doesn't hide problems
+# that the others would report. They read the same configuration files that
+# "make lint" uses. Tool versions are pinned so a linter release can't fail
+# a pull request that changed nothing it checks.
+#
+# Copyright 2026 California Institute of Technology.
+# License: Modified BSD 3-clause – see file "LICENSE" in the project website.
+# Website: https://github.com/caltechlibrary/boffo
+
+name: Lint
+run-name: Lint files after ${{github.event_name}} by ${{github.actor}}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  javascript:
+    name: JavaScript (jshint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: npx --yes jshint@2.13.6 Code.js
+
+  html:
+    name: HTML (htmlhint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: npx --yes htmlhint@1.9.2 '*.html'
+
+  markdown:
+    name: Markdown (markdownlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: DavidAnson/markdownlint-cli2-action@v25
+        with:
+          config: .markdownlint.json
+          globs: '**/*.md'
+
+  yaml:
+    name: YAML (yamllint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: |
+          git ls-files -z CITATION.cff '*.yml' '*.yaml' \
+          | xargs -0 pipx run --spec yamllint==1.38.0 \
+              yamllint --strict -c .yamllint.yml
+
+  json:
+    name: JSON (jsonlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: npx --yes @prantlf/jsonlint@17.0.1 --quiet codemeta.json
