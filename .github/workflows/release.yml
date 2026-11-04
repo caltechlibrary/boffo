@@ -12,9 +12,9 @@
 # A dry run does step 1, shows the diff and the release notes in the job
 # summary, and pushes and creates nothing.
 #
-# Publishing the draft is left to a person. Publishing creates the tag and
-# starts iga.yml, which archives the release in CaltechDATA; when that
-# succeeds, post-release.yml records the new DOI.
+# Publishing the draft is left to a person, and creates the tag. Archiving
+# the release in CaltechDATA is a separate, optional step: see "Archiving a
+# release" in docs/releasing.md.
 #
 # Copyright 2026 California Institute of Technology.
 # License: Modified BSD 3-clause – see file "LICENSE" in the project website.
@@ -116,9 +116,7 @@ jobs:
           ## Next steps
 
           1. Read the [draft release]($url) and publish it. Publishing creates
-             tag v$VERSION and starts the InvenioRDM GitHub Archiver workflow.
-          2. When archiving succeeds, the Post-release workflow commits the new
-             DOI to main.
-          3. Run the Apps Script workflow, and set the version number it reports
+             tag v$VERSION.
+          2. Run the Apps Script workflow, and set the version number it reports
              in the Google Workspace Marketplace SDK's App Configuration page.
           EOF
