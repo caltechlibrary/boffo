@@ -1,5 +1,16 @@
 # Change log for Boffo
 
+## Unreleased
+
+This version updates how Boffo logs in to FOLIO, for FOLIO servers that accept only short-lived access tokens and for institutions that use a member tenant in a FOLIO consortium.
+
+* Boffo logs in with FOLIO’s `/authn/login-with-expiry` API. It stores the short-lived access token, the refresh token, and their expiration times in the user’s properties, and never stores the user’s FOLIO password.
+* Boffo renews the access token with `/authn/refresh` shortly before it expires, or when FOLIO rejects it, and then retries the request once. This works in the middle of long searches. When the refresh token expires, Boffo asks for FOLIO credentials again.
+* When a user has no stored FOLIO login session, Boffo fills in the credentials form with the FOLIO URL and tenant id from the add-on’s script properties, replacing any older values stored for that user. This gives existing users the new tenant id the first time they log in with this version.
+* The _Clear FOLIO token_ menu item deletes all of the stored token data.
+* The privacy policy describes the tokens Boffo stores.
+
+
 ## Version 1.9.1
 
 There are no functional changes in this release; all the changes involve build automation and updates to things like copyright statements.

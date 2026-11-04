@@ -114,31 +114,39 @@ function onOpen() {
 
 function onInstall() {
   onOpen();
+  copyFolioDefaults(false);
+}
 
-  // Script properties are used to pre-populate the FOLIO OKAPI URL and
-  // tenant id field values in the credentials form (credentials-form.html).
-  // This makes it possible for all users in our organization to get pre-filled
-  // values for the URL and tenant id without hardwiring values into this
-  // code. However, the way that the script properties in a Google Apps
-  // Script project work is that anyone in the org can set the script
-  // property values. If we were to *only* read/write the properties from/to
-  // the script properties, then if any user typed some other values in the
-  // credentials form at any point and this program saved the values back to
-  // the script properties, it would change the pre-filled values that Boffo
-  // users would get after that point. To avoid that, the following code
-  // copies the values from the script properties (if they're set) to the
-  // user properties (if they don't already exist there), and the rest of the
-  // program always works off the user props.
+/**
+ * Copies the default FOLIO URL and tenant id from the script properties to
+ * the user properties. If overwrite is false, this only fills in values the
+ * user doesn't have yet; if true, it replaces the user's values.
+ *
+ * Script properties are used to pre-populate the FOLIO OKAPI URL and
+ * tenant id field values in the credentials form (credentials-form.html).
+ * This makes it possible for all users in our organization to get pre-filled
+ * values for the URL and tenant id without hardwiring values into this
+ * code. However, the way that the script properties in a Google Apps
+ * Script project work is that anyone in the org can set the script
+ * property values. If we were to *only* read/write the properties from/to
+ * the script properties, then if any user typed some other values in the
+ * credentials form at any point and this program saved the values back to
+ * the script properties, it would change the pre-filled values that Boffo
+ * users would get after that point. To avoid that, this function copies
+ * the values from the script properties (if they're set) to the user
+ * properties, and the rest of the program always works off the user props.
+ */
+function copyFolioDefaults(overwrite) {
   const scriptProps = PropertiesService.getScriptProperties();
   const userProps = PropertiesService.getUserProperties();
   let url = scriptProps.getProperty('boffo_folio_url');
-  if (url && !userProps.getProperty('boffo_folio_url')) {
+  if (url && (overwrite || !userProps.getProperty('boffo_folio_url'))) {
     url = stripTrailingSlash(url);
     userProps.setProperty('boffo_folio_url', url);
     log(`set user property boffo_folio_url to ${url}`);
   }
   let id = scriptProps.getProperty('boffo_folio_tenant_id');
-  if (id && !userProps.getProperty('boffo_folio_tenant_id')) {
+  if (id && (overwrite || !userProps.getProperty('boffo_folio_tenant_id'))) {
     userProps.setProperty('boffo_folio_tenant_id', id);
     log(`set user property boffo_folio_tenant_id to ${id}`);
   }
@@ -176,7 +184,7 @@ function lookUpBarcodes() {
   const lastLetter = getLastColumnLetter();
 
   // Get these now to avoid repeatedly doing property lookups in the next loop.
-  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const {folioUrl, tenantId} = getStoredCredentials();
 
   // If few barcodes were fetched, it happens too fast to bother printing this.
   if (numBarcodes > 200) {
@@ -197,7 +205,7 @@ function lookUpBarcodes() {
   barcodeBatches.forEach((batch, index) => {
     log(`working on rows starting with ${row}`);
     let cellValues = [];
-    let records = itemRecords(batch, folioUrl, tenantId, token);
+    let records = itemRecords(batch, folioUrl, tenantId);
     if (records.length == 0) {
       log('received no records for this batch');
       cellValues = batch.map(barcode => [barcode, ...emptyValues]);
@@ -228,14 +236,14 @@ function lookUpBarcodes() {
 /**
  * Returns the FOLIO item data for a list of barcodes.
  */
-function itemRecords(barcodes, folioUrl, tenantId, token) {
+function itemRecords(barcodes, folioUrl, tenantId) {
   let barcodeTerms = barcodes.join('%20OR%20barcode==');
   let baseUrl = `${folioUrl}/inventory/items`;
   // If there's only 1 barcode, barcodeTerms will be just that one. If > 1,
   // barcodeTerms will be "35047019076454%20OR%20barcode==35047019076453" etc
   let query = `?limit=${barcodes.length}&query=barcode==${barcodeTerms}`;
   let endpoint = baseUrl + query;
-  let result = fetchJSON(endpoint, tenantId, token);
+  let result = fetchJSON(endpoint, tenantId);
   log(`Folio returned ${result.totalRecords} records`);
   if (result.totalRecords > 0) {
     // We want the items returned in the order requested, but if a barcode
@@ -310,11 +318,11 @@ function findByCallNumbers(firstCN = undefined, lastCN = undefined) {
  *     {name: 'the name', id: 'the uuid string'}
  */
 function getLocationsList() {
-  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const {folioUrl, tenantId} = getStoredCredentials();
   // Some other API calls are limited to 100 items, but this one allows more.
   // 5000 is simply a high enough number to get the complete list (I hope!).
   const endpoint = `${folioUrl}/locations?limit=5000`;
-  const results = fetchJSON(endpoint, tenantId, token);
+  const results = fetchJSON(endpoint, tenantId);
   if (! ('locations' in results)) {
     quit('Unable to get list of locations from server',
          'The request for a list of locations from FOLIO failed to return' +
@@ -377,7 +385,7 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
 
   // If we get this far, we have values for effectiveShelvingOrder for both
   // the first and last endpoints of the search. We can proceed.
-  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const {folioUrl, tenantId} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
   const needLocation = (locationId == 'Any' ? false : true);
 
@@ -390,7 +398,7 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
 
   // Try the range query, and beware that the user may have swapped the c.n.'s.
   let endpoint = makeRangeQuery(firstESO, lastESO);
-  let expected = fetchJSON(endpoint, tenantId, token);
+  let expected = fetchJSON(endpoint, tenantId);
   if (expected.totalRecords > 0) {
     // Success.
     log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
@@ -401,7 +409,7 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
     firstESO = findItemWithEffectiveShelvingOrder(firstItemList, lastCN);
     lastESO  = findItemWithEffectiveShelvingOrder(lastItemList, firstCN);
     endpoint = makeRangeQuery(firstESO, lastESO);
-    expected = fetchJSON(endpoint, tenantId, token);
+    expected = fetchJSON(endpoint, tenantId);
     if (expected.totalRecords > 0) {
       log(`"${firstESO}" -> "${lastESO}" has ${expected.totalRecords} records`);
     } else {
@@ -438,7 +446,7 @@ function showItemsForCallNumberRange(firstCN, lastCN, locationId) {
   // Now get the records.
   note(`Fetching ${expected.totalRecords.toLocaleString()} records from FOLIO …`, 30);
   const makeQuery = makeRangeQuery.bind(null, firstESO, lastESO);
-  const records = getRecordsForQuery(makeQuery, expected.totalRecords, tenantId, token);
+  const records = getRecordsForQuery(makeQuery, expected.totalRecords, tenantId);
 
   // And we're done.
   writeResultsSheet(sortByShelvingOrder(records));
@@ -473,7 +481,7 @@ function getItemsForCN(cn, locationId) {
   cn = cn.replace(/\s+(?=[a-z])/gi, ' *');
   cn = cn.replace(/(?<=[0-9])\.(?=[a-z])/gi, '*.');
 
-  const {folioUrl, tenantId, token} = getStoredCredentials();
+  const {folioUrl, tenantId} = getStoredCredentials();
   const baseUrl = `${folioUrl}/inventory/items`;
   const needLocation = (locationId == 'Any' ? false : true);
 
@@ -487,12 +495,12 @@ function getItemsForCN(cn, locationId) {
 
   // Do preliminary query to get the number of records.
   let endpoint = makeQuery();
-  let results = fetchJSON(endpoint, tenantId, token);
+  let results = fetchJSON(endpoint, tenantId);
   log(`FOLIO has ${results.totalRecords} items for ${cn} at location ${locationId}`);
 
   // Now get the records.
   if (results.totalRecords > 0) {
-    return getRecordsForQuery(makeQuery, results.totalRecords, tenantId, token);
+    return getRecordsForQuery(makeQuery, results.totalRecords, tenantId);
   } else {
     // Get the location name so we can write it in the error message.
     let where = '';
@@ -514,19 +522,19 @@ function getItemsForCN(cn, locationId) {
 }
 
 /**
- * Takes a function object, a total numbef of records to get, and the
- * tenant ID and token, then iterates to get all the Folio records, and
+ * Takes a function object, a total number of records to get, and the
+ * tenant ID, then iterates to get all the Folio records, and
  * finally returns the array of record objects.
  *
  * The first argument (makeQuery) must be a function object that takes
  * two parameters: the "limit" value to a Folio call, and the "offset"
  * value.
  */
-function getRecordsForQuery(makeQuery, totalRecords, tenantId, token) {
+function getRecordsForQuery(makeQuery, totalRecords, tenantId) {
   let records = [];
   let results;
   for (let offset = 0; offset <= totalRecords; offset += 100) {
-    results = fetchJSON(makeQuery(100, offset), tenantId, token);
+    results = fetchJSON(makeQuery(100, offset), tenantId);
     if (results.items) {
       records.push.apply(records, results.items);
     } else {
@@ -713,6 +721,7 @@ function menuItemGetCredentials() {
  * saves them if a token is successfully obtained.
  */
 function getCredentials() {
+  copyFolioDefaults(!haveRefreshToken());
   const dialog = buildCredentialsDialog('', 'FOLIO credentials');
   log('showing dialog to get credentials');
   SpreadsheetApp.getUi().showModalDialog(dialog, 'FOLIO credentials');
@@ -734,13 +743,13 @@ function buildCredentialsDialog(callAfterSuccess, title) {
 
 /**
  * Returns multiple values needed by our calls to FOLIO. The values returned
- * are named folioUrl, tenantId, and token.
+ * are named folioUrl and tenantId. The access token is not included because
+ * it can change during a run; folioFetch() gets the current one.
  */
 function getStoredCredentials() {
   const props = PropertiesService.getUserProperties();
   return {folioUrl: props.getProperty('boffo_folio_url'),
-          tenantId: props.getProperty('boffo_folio_tenant_id'),
-          token:    props.getProperty('boffo_folio_api_token')};
+          tenantId: props.getProperty('boffo_folio_tenant_id')};
 }
 
 /**
@@ -754,15 +763,16 @@ function getStoredCredentials() {
  * desired function.
  */
 function withCredentials(funcToCall) {
-  const {folioUrl, tenantId, token} = getStoredCredentials();
-  const haveCreds = isNonempty(folioUrl) && isNonempty(tenantId) && isNonempty(token);
-  if (haveCreds && haveValidToken(folioUrl, tenantId, token)) {
+  const {folioUrl, tenantId} = getStoredCredentials();
+  const haveCreds = isNonempty(folioUrl) && isNonempty(tenantId) && haveSession();
+  if (haveCreds && haveValidSession(folioUrl, tenantId)) {
     log(`have credentials; calling ${funcToCall.name}`);
     funcToCall();
   } else {
     const what   = ((folioUrl && tenantId) ? 'update' : 'obtain');
     const title  = `Boffo needs to ${what} FOLIO credentials`;
     log(`need to ${what} credentials before calling ${funcToCall.name}`);
+    copyFolioDefaults(!haveRefreshToken());
     const dialog = buildCredentialsDialog(funcToCall.name, title);
     SpreadsheetApp.getUi().showModalDialog(dialog, title);
   }
@@ -782,10 +792,10 @@ function withCredentials(funcToCall) {
  * black error banner across the top of the spreadsheet.
  */
 function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
-  // Before saving the given info, we try to create a token. If that fails,
-  // don't save the input because something is probably wrong with it.
+  // Before saving the given info, we try to log in. If that fails, don't
+  // save the input because something is probably wrong with it.
   url = stripTrailingSlash(url);
-  const endpoint = url + '/authn/login';
+  const endpoint = url + '/authn/login-with-expiry';
   const payload = JSON.stringify({
       'tenant': tenantId,
       'username': user,
@@ -820,22 +830,21 @@ function saveFolioInfo(url, tenantId, user, password, callAfterSuccess = '') {
   }
 
   if (httpCode < 300) {
-    const response_headers = response.getHeaders();
-    if ('x-okapi-token' in response_headers) {
-      const token = response_headers['x-okapi-token'];
-      const props = PropertiesService.getUserProperties();
-      props.setProperty('boffo_folio_api_token', token);
-      log('got token from Folio and saved it');
+    clearTokens();
+    if (saveTokens(response) && haveRefreshToken()) {
+      log('got tokens from Folio and saved them');
       // Also save the URL & tenant id now, since we know they work.
+      const props = PropertiesService.getUserProperties();
       props.setProperty('boffo_folio_url', url);
       props.setProperty('boffo_folio_tenant_id', tenantId);
       return true;
     } else {
-      quit('Unexpectedly failed to get a token back',
+      clearTokens();
+      quit('Unexpectedly failed to get tokens back',
            'The call to FOLIO was successful but FOLIO did not return' +
-           ' a token. This should never occur, and probably indicates' +
-           ' a bug in Boffo. Please report this to the developers and' +
-           ' describe what led to it.');
+           ' both an access token and a refresh token. This should never' +
+           ' occur, and probably indicates a bug in Boffo. Please report' +
+           ' this to the developers and describe what led to it.');
       return false;
     }
 
@@ -892,26 +901,17 @@ function callBoffoFunction(name) {
 }
 
 /**
- * Returns true if the user's stored token is valid, based on contacting FOLIO.
+ * Returns true if the user's FOLIO session works, based on contacting FOLIO.
+ * This renews the access token if necessary.
  */
-function haveValidToken(folioUrl, tenantId, token) {
+function haveValidSession(folioUrl, tenantId) {
   // The only way to check the token is to try to make an API call.
   const endpoint = folioUrl + '/instance-statuses?limit=0';
-  const options = {
-    'method': 'get',
-    'contentType': 'application/json',
-    'headers': {
-      'x-okapi-tenant': tenantId,
-      'x-okapi-token': token
-    },
-    'muteHttpExceptions': true
-  };
-  
-  log(`testing if token is valid by doing HTTP get on ${endpoint}`);
-  const response = UrlFetchApp.fetch(endpoint, options);
-  const httpCode = response.getResponseCode();
-  log(`got code ${httpCode}; token ${httpCode < 400 ? "is" : "is not"} valid`);
-  return httpCode < 400;
+  log(`testing if FOLIO session is valid by doing HTTP get on ${endpoint}`);
+  const response = folioFetch(endpoint, tenantId);
+  const valid = (response != null) && (response.getResponseCode() < 400);
+  log(`FOLIO session ${valid ? "is" : "is not"} valid`);
+  return valid;
 }
 
 /**
@@ -924,25 +924,274 @@ function haveCredentials() {
   const props = PropertiesService.getUserProperties();
   return (isNonempty(props.getProperty('boffo_folio_url')) &&
           isNonempty(props.getProperty('boffo_folio_tenant_id')) &&
-          isNonempty(props.getProperty('boffo_folio_api_token')));
+          haveSession());
 }
 
-
+
+// FOLIO tokens and API requests.
+// ............................................................................
+// FOLIO issues short-lived access tokens (about 10 minutes) together with a
+// longer-lived refresh token. Boffo stores both in the user properties, along
+// with their expiration times, and uses the refresh token to get a new access
+// token when the current one is about to expire or FOLIO rejects it. Boffo
+// never stores the user's FOLIO password, so once the refresh token expires,
+// the user has to enter their FOLIO credentials again.
+
+// Names of the user properties that hold the token data.
+const tokenProp               = 'boffo_folio_api_token';
+const tokenExpiresProp        = 'boffo_folio_api_token_expires';
+const refreshTokenProp        = 'boffo_folio_refresh_token';
+const refreshTokenExpiresProp = 'boffo_folio_refresh_token_expires';
+
+// Boffo renews the access token when it has less than this much time left.
+const tokenRenewalMargin = 60 * 1000;   // Milliseconds.
+
+/**
+ * Does an HTTP GET on a FOLIO API endpoint and returns the HTTPResponse
+ * object. If FOLIO rejects the access token, this renews the token and tries
+ * once more. Returns null if Boffo can't get a valid access token, which
+ * means the user needs to enter their FOLIO credentials again.
+ */
+function folioFetch(endpoint, tenantId) {
+  function fetchWithToken(token) {
+    const options = {
+      'method': 'get',
+      'contentType': 'application/json',
+      'headers': {
+        'x-okapi-tenant': tenantId,
+        'x-okapi-token': token
+      },
+      'escaping': false,
+      'muteHttpExceptions': true
+    };
+    try {
+      log(`doing HTTP ${options.method} on ${endpoint}`);
+      const response = UrlFetchApp.fetch(endpoint, options);
+      log(`got HTTP response code ${response.getResponseCode()}`);
+      return response;
+    } catch ({name, message}) {
+      log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
+      quit('Failed due to an unrecognized error',
+           'Please carefully check the values entered in the form. If' +
+           ' you cannot find the problem or it appears to be a bug in' +
+           ' Boffo, please contact the developer and mention that you' +
+           ` received the following error message:  ${message}`);
+      return null;
+    }
+  }
+
+  const token = getAccessToken();
+  if (!token) {
+    return null;
+  }
+  const response = fetchWithToken(token);
+  if (response.getResponseCode() != 401) {
+    return response;
+  }
+  log('FOLIO rejected the access token; trying to renew it');
+  if (!refreshAccessToken(token)) {
+    return null;
+  }
+  return fetchWithToken(PropertiesService.getUserProperties().getProperty(tokenProp));
+}
+
+/**
+ * Returns the stored access token, first renewing it if it is about to
+ * expire. Returns null if there is no access token.
+ */
+function getAccessToken() {
+  const props = PropertiesService.getUserProperties();
+  const token = props.getProperty(tokenProp);
+  if (token && expiresSoon(props.getProperty(tokenExpiresProp), tokenRenewalMargin)) {
+    log('access token is about to expire; renewing it');
+    refreshAccessToken(token);
+    return props.getProperty(tokenProp);
+  }
+  return token;
+}
+
+/**
+ * Asks FOLIO for a new access token using the stored refresh token, and
+ * stores the result. The argument is the access token the caller has found
+ * to be expiring or rejected. Returns true if Boffo has a new access token.
+ * If FOLIO rejects the refresh token, this clears the stored tokens.
+ *
+ * FOLIO may issue a new refresh token on each renewal and reject the old
+ * one. Two Boffo executions renewing at the same time (for example, if the
+ * user runs two commands in quick succession) could then lock each other
+ * out. To avoid that, this takes a user lock and, once it has the lock,
+ * checks whether another execution already stored a new access token.
+ */
+function refreshAccessToken(staleToken) {
+  const lock = LockService.getUserLock();
+  if (!lock.tryLock(30000)) {
+    log('timed out waiting for the lock needed to renew the access token');
+    return false;
+  }
+  try {
+    const props = PropertiesService.getUserProperties();
+    const token = props.getProperty(tokenProp);
+    if (token && token != staleToken &&
+        !expiresSoon(props.getProperty(tokenExpiresProp), tokenRenewalMargin)) {
+      log('another execution already renewed the access token');
+      return true;
+    }
+    const refreshToken = props.getProperty(refreshTokenProp);
+    if (!refreshToken || expiresSoon(props.getProperty(refreshTokenExpiresProp))) {
+      log('there is no unexpired refresh token');
+      clearTokens();
+      return false;
+    }
+
+    const {folioUrl, tenantId} = getStoredCredentials();
+    const endpoint = folioUrl + '/authn/refresh';
+    const options = {
+      'method': 'post',
+      'contentType': 'application/json',
+      'headers': {
+        'x-okapi-tenant': tenantId,
+        'Cookie': `folioRefreshToken=${refreshToken}`
+      },
+      'muteHttpExceptions': true
+    };
+    let response;
+    try {
+      log(`doing HTTP post on ${endpoint}`);
+      response = UrlFetchApp.fetch(endpoint, options);
+    } catch ({name, message}) {
+      log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
+      return false;
+    }
+    const httpCode = response.getResponseCode();
+    log(`got HTTP response code ${httpCode}`);
+    if (httpCode < 300 && saveTokens(response)) {
+      log('renewed the access token');
+      return true;
+    }
+    if (httpCode >= 400 && httpCode < 500) {
+      log('FOLIO rejected the refresh token');
+      clearTokens();
+    }
+    return false;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Stores the tokens and expiration times from FOLIO's response to a login
+ * or token renewal request. Returns true if the response contains an access
+ * token. If the response has no new refresh token, the stored one is kept.
+ */
+function saveTokens(response) {
+  const token = getHeader(response, 'x-okapi-token') ||
+        getCookie(response, 'folioAccessToken');
+  if (!token) {
+    log('FOLIO response did not include an access token');
+    return false;
+  }
+  let body = {};
+  try {
+    body = JSON.parse(response.getContentText());
+  } catch ({name, message}) {
+    log(`unable to get token expiration times from FOLIO: ${message}`);
+  }
+  const props = PropertiesService.getUserProperties();
+  props.setProperty(tokenProp, token);
+  if (body.accessTokenExpiration) {
+    props.setProperty(tokenExpiresProp, body.accessTokenExpiration);
+  } else {
+    props.deleteProperty(tokenExpiresProp);
+  }
+  const refreshToken = getCookie(response, 'folioRefreshToken');
+  if (refreshToken) {
+    props.setProperty(refreshTokenProp, refreshToken);
+    if (body.refreshTokenExpiration) {
+      props.setProperty(refreshTokenExpiresProp, body.refreshTokenExpiration);
+    } else {
+      props.deleteProperty(refreshTokenExpiresProp);
+    }
+  }
+  log(`access token expires ${body.accessTokenExpiration || 'at an unknown time'}`);
+  return true;
+}
+
+/**
+ * Deletes all stored FOLIO token data.
+ */
+function clearTokens() {
+  const props = PropertiesService.getUserProperties();
+  [tokenProp, tokenExpiresProp, refreshTokenProp, refreshTokenExpiresProp]
+    .forEach(prop => props.deleteProperty(prop));
+}
+
+/**
+ * Returns true if a refresh token is stored, whether or not it has expired.
+ */
+function haveRefreshToken() {
+  return isNonempty(PropertiesService.getUserProperties().getProperty(refreshTokenProp));
+}
+
+/**
+ * Returns true if a refresh token is stored and is not about to expire.
+ * Without one, the user must enter their FOLIO credentials again.
+ */
+function haveSession() {
+  const props = PropertiesService.getUserProperties();
+  return haveRefreshToken() &&
+         !expiresSoon(props.getProperty(refreshTokenExpiresProp), tokenRenewalMargin);
+}
+
+/**
+ * Returns true if the given ISO 8601 date-time string is less than marginMs
+ * milliseconds from now. Returns false if the value is empty or can't be
+ * parsed; in that case, Boffo relies on FOLIO to reject an expired token.
+ */
+function expiresSoon(isoTime, marginMs = 0) {
+  const time = Date.parse(isoTime);
+  return isNaN(time) ? false : (time - Date.now() < marginMs);
+}
+
+/**
+ * Returns the value of the named header in an HTTPResponse object, or an
+ * empty string if the header is absent. The name comparison ignores case,
+ * because servers using HTTP/2 send header names in lowercase. If the header
+ * appears more than once, the value is an array of strings.
+ */
+function getHeader(response, name) {
+  const headers = response.getAllHeaders();
+  const key = Object.keys(headers).find(k => k.toLowerCase() == name.toLowerCase());
+  return key ? headers[key] : '';
+}
+
+/**
+ * Returns the value of the named cookie set by an HTTPResponse object, or
+ * an empty string if the response does not set it.
+ */
+function getCookie(response, name) {
+  // Each Set-Cookie value has the form "name=value; Path=/; HttpOnly; ...".
+  const setCookie = getHeader(response, 'Set-Cookie');
+  const text = Array.isArray(setCookie) ? setCookie.join(', ') : setCookie;
+  const match = new RegExp(`(?:^|[;,]\\s*)${name}=([^;,]*)`).exec(text);
+  return match ? match[1] : '';
+}
+
+
 // Menu item "Clear token".
 // ............................................................................
 
 /**
- * Unsets the user's stored token. This should rarely be needed but might be
+ * Unsets the user's stored tokens. This should rarely be needed but might be
  * useful for debugging.
  */
 function menuItemClearToken() {
-  PropertiesService.getUserProperties().deleteProperty('boffo_folio_api_token');
+  clearTokens();
   const ui = SpreadsheetApp.getUi();
-  ui.alert('Your stored FOLIO token has been deleted. You can use the' +
-           ' menu option "Set FOLIO credentials" to generate a new one.');
+  ui.alert('Your stored FOLIO tokens have been deleted. You can use the' +
+           ' menu option "Set FOLIO user credentials" to log in again.');
 }
 
-
+
 // Menu item "About Boffo".
 // ............................................................................
 
@@ -989,34 +1238,16 @@ function getProp(prop) {
  * Does an HTTP call, checks for errors, and either quits or returns the
  * response.
  */
-function fetchJSON(endpoint, tenantId, token) {
-  const options = {
-    'method': 'get',
-    'contentType': 'application/json',
-    'headers': {
-      'x-okapi-tenant': tenantId,
-      'x-okapi-token': token
-    },
-    'escaping': false,
-    'muteHttpExceptions': true
-  };
-  let response;
-  let httpCode;
-
-  try {
-    log(`doing HTTP ${options.method} on ${endpoint}`);
-    response = UrlFetchApp.fetch(endpoint, options);
-    httpCode = response.getResponseCode();
-    log(`got HTTP response code ${httpCode}`);
-  } catch ({name, message}) {
-    log(`error attempting UrlFetchApp on ${endpoint}: ${message}`);
-    quit('Failed due to an unrecognized error', 
-         'Please carefully check the values entered in the form. If' +
-         ' you cannot find the problem or it appears to be a bug in' +
-         ' Boffo, please contact the developer and mention that you' +
-         ` received the following error message:  ${message}`);
+function fetchJSON(endpoint, tenantId) {
+  const response = folioFetch(endpoint, tenantId);
+  if (response == null) {
+    quit('Stopped because the FOLIO login session has expired',
+         'Boffo was unable to renew its FOLIO access token. Please use' +
+         ' the Boffo menu option "Set FOLIO user credentials" to log in' +
+         ' to FOLIO again, then repeat the same operation.');
     return {};
   }
+  const httpCode = response.getResponseCode();
 
   if (httpCode >= 300) {
     note('Stopping due to error.', 0.1);

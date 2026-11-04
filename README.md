@@ -59,7 +59,7 @@ Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ra
 <img width="90%" src="docs/_static/media/sample-output.png" alt="Screenshot of sample results from Boffo">
 </p>
 
-If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
+If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to log in to FOLIO. Boffo will store the tokens that FOLIO returns (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. FOLIO access tokens last only a few minutes, so Boffo uses a longer-lived refresh token to get new ones as needed, including in the middle of a long search. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless the refresh token expires or FOLIO stops accepting it (in which case, Boffo will ask you for the credentials again).
 
 
 ## Usage
