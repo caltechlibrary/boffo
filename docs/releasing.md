@@ -50,7 +50,7 @@ Be aware of what this secret is:
 
 ## Making a release
 
-1. Make sure everything for the release is merged into `main` and the _Lint_ workflow passes there.
+1. Make sure everything for the release is merged into `main`, and that `make lint` passes.
 2. Make sure the `[Unreleased]` section of `CHANGELOG.md` describes the release, using the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) headings (_Added_, _Changed_, _Fixed_, and so on). This section becomes the release notes.
 3. On the repository’s **Actions** tab, select **Release**, then **Run workflow**. Leave the branch set to `main`, enter the new version number (such as `2.0.0`, without a `v`), and leave **Dry run** checked. When the run finishes, read its summary, which shows the changes it would commit and the release notes.
 4. Run **Release** again with **Dry run** unchecked. It commits `chore: release X.Y.Z` to `main` and opens a draft release for tag `vX.Y.Z`. The run summary links to the draft.
@@ -77,4 +77,4 @@ The workflows keep their logic in shell scripts that also run on your computer. 
 - `.github/scripts/prepare-release.sh 2.0.0` makes the changes a release of version 2.0.0 would make to `codemeta.json`, `CITATION.cff`, and `CHANGELOG.md`. Use `git diff` to see them, and `git checkout -- codemeta.json CITATION.cff CHANGELOG.md` to undo them.
 - `.github/scripts/update-doi.sh` sets the DOI in `CITATION.cff` and `relatedLink` in `codemeta.json` to the latest archived release in CaltechDATA.
 
-Both take `--help`. `make lint` runs the same linters as the _Lint_ workflow.
+Both take `--help`.
