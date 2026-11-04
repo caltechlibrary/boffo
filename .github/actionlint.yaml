@@ -1,10 +1,11 @@
 # Summary: configuration file for actionlint, which "make lint" runs.
 #
 # bad-link-reporter.yml and iga.yml are copies of the sample workflows from
-# Baler and IGA, and are meant to stay identical to them. The problems below
-# are in those samples, so they are ignored here rather than fixed in the
-# copies: the timeout input that Baler's workflow reads but doesn't declare,
-# and an unquoted variable in IGA's.
+# Baler and IGA, and are meant to stay as close to them as they can; iga.yml
+# differs only in what starts it. The problems below are in those samples,
+# so they are ignored here rather than fixed in the copies: the timeout
+# input that Baler's workflow reads but doesn't declare, and an unquoted
+# variable in IGA's.
 #
 # Copyright 2026 California Institute of Technology.
 # License: Modified BSD 3-clause – see file "LICENSE" in the project website.
