@@ -1,0 +1,67 @@
+# Summary: GitHub Actions workflow to build the Boffo docs and publish them.
+#
+# The build and the checks on its output come from the shared actions in
+# https://github.com/caltechlibrary/workflows. Pull requests build the site
+# but don't deploy it, so a change that breaks the docs fails in review.
+#
+# Publishing needs Settings → Pages → Source set to "GitHub Actions".
+#
+# Copyright 2026 California Institute of Technology.
+# License: Modified BSD 3-clause – see file "LICENSE" in the project website.
+# Website: https://github.com/caltechlibrary/boffo
+
+name: Docs
+run-name: Build docs after ${{github.event_name}} by ${{github.actor}}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**
+      - .github/workflows/docs.yml
+  pull_request:
+    paths:
+      - docs/**
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; let a running one finish rather than cancelling
+# it partway through a publish.
+concurrency:
+  group: pages-${{github.ref}}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: caltechlibrary/workflows/.github/actions/build-sphinx@v1
+        with:
+          requirements: docs/requirements.txt
+          python-version: '3.12'
+
+      - uses: caltechlibrary/workflows/.github/actions/deploy-site@v1
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
