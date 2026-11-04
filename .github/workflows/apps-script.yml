@@ -1,9 +1,9 @@
 # Summary: GitHub Actions workflow to push a release to Apps Script.
 #
 # Run it from the Actions tab after a release is published. It checks out
-# the release's tag, pushes the files to Caltech's Apps Script project for
-# Boffo with clasp, creates a numbered version of that project, and reports
-# the version number in the job summary.
+# the release's tag, pushes the files to Caltech Library's Apps Script
+# project for Boffo with clasp, creates a numbered version of that project,
+# and reports the version number in the job summary.
 #
 # Users get the new version only after someone sets that number on the App
 # Configuration page of the Google Workspace Marketplace SDK. There is no API
