@@ -18,8 +18,9 @@
 # giving up. Writing the previous release's DOI would make CITATION.cff cite
 # the wrong version.
 #
-# This edits the working tree and does nothing else. post-release.yml runs it
-# and commits the result.
+# Run it after archiving a release with the InvenioRDM GitHub Archiver
+# workflow (iga.yml), then commit the result. It edits the working tree and
+# does nothing else. See "Archiving a release" in docs/releasing.md.
 #
 # Needs bash, git, curl, jq, and awk.
 #
