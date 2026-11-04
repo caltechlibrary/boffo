@@ -28,10 +28,17 @@ endif
 # Before we go any further, test if certain programs are available.
 # The following is based on the approach posted by Jonathan Ben-Avraham to
 # Stack Overflow in 2014 at https://stackoverflow.com/a/25668869
+#
+# Every target needs git and jq, to set the variables below. A target that
+# needs another program checks for it with "require" as its first line, so
+# that "make help" works without clasp, for example.
 
-programs_needed = curl git jq clasp npx
+programs_needed = git jq
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
+
+require = $(foreach p,$(1),\
+	  $(if $(shell which $(p)),,$(error Cannot find program "$(p)")))
 
 # Set some basic variables. These are quick to set; we set additional ones
 # using the dependency named "vars" but only when the others are needed.
@@ -78,6 +85,7 @@ vars: doi-vars
 # leave rdm_id & new_doi undefined. Other rules in this makefile test for that.
 .SILENT: doi-vars
 doi-vars:
+	$(call require,curl)
 	$(eval rdm_link	:= \
 	  $(strip $(shell jq -r '.relatedLink | if type == "array" then .[0] else . end' codemeta.json)))
 ifneq ($(rdm_link),null)
@@ -109,6 +117,7 @@ report: vars
 
 #: Continually watch files & upload changes to Google GAS project.
 watch:
+	$(call require,clasp)
 	clasp -P $(CURDIR)/.clasp.json.caltech push --watch
 
 
@@ -120,7 +129,8 @@ watch:
 
 #: Check Code.js, the Markdown files, and (if installed) the workflows.
 lint:
-	@npx --yes jshint@2.13.6 Code.js
+	@$(call require,npx)
+	npx --yes jshint@2.13.6 Code.js
 	npx --yes markdownlint-cli2@0.24.0 $(shell git ls-files '*.md')
 	if command -v actionlint > /dev/null; then
 	  actionlint
@@ -138,6 +148,7 @@ clean:
 
 #: Print a random joke from https://icanhazdadjoke.com/.
 joke:
+	$(call require,curl)
 	@echo "$(shell curl -s https://icanhazdadjoke.com/)"
 
 # Color codes used in messages.
