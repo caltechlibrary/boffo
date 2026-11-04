@@ -1,0 +1,124 @@
+# Summary: GitHub Actions workflow to prepare a release of Boffo.
+#
+# Run it from the Actions tab on main, with the version to release. It
+#
+#  1. updates codemeta.json, CITATION.cff, and CHANGELOG.md for the version
+#     (see .github/scripts/prepare-release.sh);
+#  2. commits that to main as "chore: release X.Y.Z";
+#  3. opens a draft GitHub release for tag vX.Y.Z on that commit, using the
+#     shared create-release action from caltechlibrary/workflows, with the
+#     version's CHANGELOG.md section as the release notes.
+#
+# A dry run does step 1, shows the diff and the release notes in the job
+# summary, and pushes and creates nothing.
+#
+# Publishing the draft is left to a person. Publishing creates the tag and
+# starts iga.yml, which archives the release in CaltechDATA; when that
+# succeeds, post-release.yml records the new DOI.
+#
+# Copyright 2026 California Institute of Technology.
+# License: Modified BSD 3-clause – see file "LICENSE" in the project website.
+# Website: https://github.com/caltechlibrary/boffo
+
+name: Release
+run-name: Release ${{inputs.version}}${{inputs.dry-run && ' (dry run)' || ''}}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, such as 2.0.0
+        required: true
+        type: string
+      dry-run:
+        description: Dry run. Show the changes and release notes, and push and create nothing.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Prepare release ${{inputs.version}}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{inputs.version}}
+      GH_TOKEN: ${{github.token}}
+      # Release dates are Pasadena dates, not UTC ones.
+      TZ: America/Los_Angeles
+    steps:
+      - name: Check that this is running on main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run this workflow on main, not on $GITHUB_REF_NAME."
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          # Fetch the tags, so the check for an existing tag sees them.
+          fetch-depth: 0
+
+      - name: Update codemeta.json, CITATION.cff, and CHANGELOG.md
+        run: |
+          .github/scripts/prepare-release.sh \
+            --notes "$RUNNER_TEMP/release-notes.md" "$VERSION"
+
+      - name: Show the changes
+        run: |
+          {
+            echo "## Changes for $VERSION"
+            echo
+            echo '```diff'
+            git diff
+            echo '```'
+            echo
+            echo "## Release notes"
+            echo
+            cat "$RUNNER_TEMP/release-notes.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push to main
+        id: commit
+        if: ${{!inputs.dry-run}}
+        env:
+          GIT_AUTHOR_NAME: ${{github.actor}}
+          GIT_AUTHOR_EMAIL: ${{github.actor_id}}+${{github.actor}}@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git commit -q -m "chore: release $VERSION" \
+            codemeta.json CITATION.cff CHANGELOG.md
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Open a draft release
+        uses: caltechlibrary/workflows/.github/actions/create-release@v1
+        with:
+          tag: v${{inputs.version}}
+          title: Release ${{inputs.version}}
+          target: ${{steps.commit.outputs.sha || github.sha}}
+          generate-notes: false
+          dry-run: ${{inputs.dry-run}}
+
+      - name: Use the CHANGELOG.md section as the release notes
+        if: ${{!inputs.dry-run}}
+        run: |
+          gh release edit "v$VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+          url="$(gh release view "v$VERSION" --json url --jq .url)"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Next steps
+
+          1. Read the [draft release]($url) and publish it. Publishing creates
+             tag v$VERSION and starts the InvenioRDM GitHub Archiver workflow.
+          2. When archiving succeeds, the Post-release workflow commits the new
+             DOI to main.
+          3. Run the Apps Script workflow, and set the version number it reports
+             in the Google Workspace Marketplace SDK's App Configuration page.
+          EOF
