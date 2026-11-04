@@ -1,0 +1,125 @@
+# Summary: GitHub Actions workflow to push a release to Apps Script.
+#
+# Run it from the Actions tab after a release is published. It checks out
+# the release's tag, pushes the files to Caltech's Apps Script project for
+# Boffo with clasp, creates a numbered version of that project, and reports
+# the version number in the job summary.
+#
+# Users get the new version only after someone sets that number on the App
+# Configuration page of the Google Workspace Marketplace SDK. There is no API
+# for that, so it stays a manual step.
+#
+# The Apps Script API doesn't accept service accounts, so clasp runs with a
+# person's OAuth credentials: the contents of their ~/.clasprc.json, stored
+# as the secret CLASPRC_JSON in the "apps-script" environment. See the
+# release instructions in docs/ for setting it up and for the risks.
+#
+# Copyright 2026 California Institute of Technology.
+# License: Modified BSD 3-clause – see file "LICENSE" in the project website.
+# Website: https://github.com/caltechlibrary/boffo
+
+name: Apps Script
+run-name: Push ${{inputs.tag || 'the latest release'}} to Apps Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to push, such as v2.0.0 (empty means the latest release)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apps-script
+  cancel-in-progress: false
+
+env:
+  CLASP_VERSION: 3.4.1
+
+jobs:
+  push:
+    name: Push and create a version
+    runs-on: ubuntu-latest
+    environment: apps-script
+    steps:
+      - name: Find the release
+        id: release
+        env:
+          GH_TOKEN: ${{github.token}}
+          TAG: ${{inputs.tag}}
+        run: |
+          if [ -z "$TAG" ]; then
+            TAG="$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          fi
+          draft="$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" || {
+            echo "::error::There is no release for tag $TAG."
+            exit 1
+          }
+          if [ "$draft" = true ]; then
+            echo "::error::Release $TAG is a draft. Publish it first."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{steps.release.outputs.tag}}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install clasp
+        run: npm install --global "@google/clasp@$CLASP_VERSION"
+
+      - name: Write clasp credentials
+        env:
+          CLASPRC_JSON: ${{secrets.CLASPRC_JSON}}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then
+            echo "::error::The apps-script environment has no CLASPRC_JSON secret."
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$CLASPRC_JSON" > ~/.clasprc.json
+          jq -e . ~/.clasprc.json > /dev/null || {
+            echo "::error::The CLASPRC_JSON secret is not valid JSON."
+            exit 1
+          }
+
+      # clasp 3 needs an absolute path to a project file not named .clasp.json.
+      - name: Push the files to Apps Script
+        run: clasp -P "$PWD/.clasp.json.caltech" push --force
+
+      - name: Create a version
+        env:
+          TAG: ${{steps.release.outputs.tag}}
+        run: |
+          out="$(clasp -P "$PWD/.clasp.json.caltech" --json \
+                   create-version "Boffo ${TAG#v}")"
+          echo "$out"
+          number="$(grep -o '"versionNumber": *[0-9]*' <<< "$out" | grep -o '[0-9]*$')"
+          if [ -z "$number" ]; then
+            echo "::error::clasp did not report a version number."
+            exit 1
+          fi
+          project="$(jq -r .projectId .clasp.json.caltech)"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Apps Script version $number
+
+          Pushed $TAG to the Apps Script project and created version
+          **$number** from it.
+
+          To release it to users, open the
+          [App Configuration page](https://console.cloud.google.com/apis/api/appsmarketplace.googleapis.com/googleapps_sdk?project=$project)
+          of the Google Workspace Marketplace SDK, set the Sheets add-on
+          script version to **$number**, and save.
+          EOF
+
+      - name: Remove clasp credentials
+        if: always()
+        run: rm -f ~/.clasprc.json
