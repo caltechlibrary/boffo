@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Archiving a release in CaltechDATA is a separate, optional step. The InvenioRDM GitHub Archiver workflow runs only when started by hand, and the workflow that recorded the DOI after archiving is removed. The _Releasing Boffo_ page in the documentation describes how to archive a release and record its DOI with `.github/scripts/update-doi.sh`.
+
 
 ## [1.10.0] - 2026-11-04
 

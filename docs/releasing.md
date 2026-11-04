@@ -4,9 +4,11 @@ This page is for Boffo’s maintainers. It describes how to release a new versio
 
 A release has three parts, and GitHub Actions workflows in this repository do most of the work:
 
-1. **GitHub release.** The _Release_ workflow updates the version number and metadata, commits them to `main`, and opens a draft GitHub release. A maintainer publishes the draft. The _InvenioRDM GitHub Archiver_ workflow then archives the release in [CaltechDATA](https://data.caltech.edu), and the _Post-release_ workflow records the new DOI.
+1. **GitHub release.** The _Release_ workflow updates the version number and metadata, commits them to `main`, and opens a draft GitHub release. A maintainer publishes the draft.
 2. **Apps Script version.** The _Apps Script_ workflow pushes the release’s files to Caltech Library’s Apps Script project for Boffo and creates a numbered version of it.
 3. **Marketplace update.** A maintainer sets that version number in the Google Workspace Marketplace SDK. Users get the new version only after this step, which can’t be automated.
+
+Archiving a release in [CaltechDATA](https://data.caltech.edu), which gives it a DOI, is a separate, optional step, described under _Archiving a release_ below.
 
 `codemeta.json` is the master source for the version number and other metadata. The release workflow copies them into `CITATION.cff`.
 
@@ -16,10 +18,6 @@ A release has three parts, and GitHub Actions workflows in this repository do mo
 ### GitHub Pages
 
 The _Docs_ workflow publishes this site with GitHub Actions. In the repository’s **Settings → Pages**, set **Source** to _GitHub Actions_.
-
-### CaltechDATA
-
-The archiving workflow (`iga.yml`) needs a CaltechDATA token in the secret `INVENIO_TOKEN`, either in the repository or in the `caltechlibrary` organization.
 
 ### Apps Script credentials
 
@@ -54,27 +52,37 @@ Be aware of what this secret is:
 2. Make sure the `[Unreleased]` section of `CHANGELOG.md` describes the release, using the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) headings (_Added_, _Changed_, _Fixed_, and so on). This section becomes the release notes.
 3. On the repository’s **Actions** tab, select **Release**, then **Run workflow**. Leave the branch set to `main`, enter the new version number (such as `2.0.0`, without a `v`), and leave **Dry run** checked. When the run finishes, read its summary, which shows the changes it would commit and the release notes.
 4. Run **Release** again with **Dry run** unchecked. It commits `chore: release X.Y.Z` to `main` and opens a draft release for tag `vX.Y.Z`. The run summary links to the draft.
-5. Open the draft, edit the notes if needed, and click **Publish release**. Publishing creates the tag and starts the _InvenioRDM GitHub Archiver_ workflow.
-6. When archiving succeeds, the _Post-release_ workflow commits `chore: update DOI for release X.Y.Z` to `main`. Check that it ran.
-7. On the **Actions** tab, select **Apps Script**, then **Run workflow**. Leave the tag empty to use the latest release. Approve the run when GitHub asks for a review of the `apps-script` deployment. The run summary gives the new Apps Script version number.
-8. Open the [App Configuration page](https://console.cloud.google.com/apis/api/appsmarketplace.googleapis.com/googleapps_sdk?project=boffo-add-on) of the Google Workspace Marketplace SDK in the `boffo-add-on` Cloud project. Under the Sheets add-on, set the script version to the number from step 7, and click **Save**. Users get the new version the next time Google updates their add-ons, which can take a while.
+5. Open the draft, edit the notes if needed, and click **Publish release**. Publishing creates the tag.
+6. On the **Actions** tab, select **Apps Script**, then **Run workflow**. Leave the tag empty to use the latest release. Approve the run when GitHub asks for a review of the `apps-script` deployment. The run summary gives the new Apps Script version number.
+7. Open the [App Configuration page](https://console.cloud.google.com/apis/api/appsmarketplace.googleapis.com/googleapps_sdk?project=boffo-add-on) of the Google Workspace Marketplace SDK in the `boffo-add-on` Cloud project. Under the Sheets add-on, set the script version to the number from step 6, and click **Save**. Users get the new version the next time Google updates their add-ons, which can take a while.
 
 The _Release_ workflow refuses to run if the version isn’t greater than the one in `codemeta.json`, if tag `vX.Y.Z` already exists, or if the `[Unreleased]` section of `CHANGELOG.md` is empty.
+
+
+## Archiving a release
+
+Archiving a published release in CaltechDATA gives it a DOI. Releases don’t depend on it. Until a release is archived, `doi` in `CITATION.cff` and `relatedLink` in `codemeta.json` point to the last release that was.
+
+1. On the **Actions** tab, select **InvenioRDM GitHub Archiver**, then **Run workflow**. Enter the release’s tag, such as `v2.0.0`, or leave it empty for the latest release.
+2. When the run succeeds, run `.github/scripts/update-doi.sh` on an up-to-date `main`. It asks CaltechDATA for the newest archived version and sets `doi` and `relatedLink` to it. Check `git diff`, then commit the change as `chore: update DOI for release X.Y.Z`.
+
+The workflow (`iga.yml`) needs a CaltechDATA personal access token in the secret `INVENIO_TOKEN`, either in the repository or in the `caltechlibrary` organization.
 
 
 ## When something goes wrong
 
 - **The _Release_ workflow fails before committing.** Nothing has changed. Fix the problem and run it again.
 - **The draft release is wrong.** A draft has no tag yet. Edit the notes in the draft, or delete the draft, revert the `chore: release X.Y.Z` commit, and start again.
-- **The _Post-release_ workflow fails** because CaltechDATA hasn’t finished indexing the new record. Run **Post-release** again from the **Actions** tab.
 - **The _Apps Script_ workflow fails at `clasp push`** with an authentication error. The credentials have expired or were revoked. Repeat steps 3 and 4 under _Apps Script credentials_ above.
+- **The _InvenioRDM GitHub Archiver_ workflow says the personal access token was rejected.** CaltechDATA doesn’t accept the `INVENIO_TOKEN` secret. Someone with a CaltechDATA account that can deposit Caltech Library records has to create a new token and replace the secret.
+- **`update-doi.sh` says the latest record is for the previous version.** CaltechDATA hasn’t finished indexing the new record. Wait a few minutes and run it again.
 
 
 ## Running the steps locally
 
-The workflows keep their logic in shell scripts that also run on your computer. Neither script commits or pushes anything.
+The release scripts run on your computer as well as in GitHub Actions. Neither commits or pushes anything.
 
-- `.github/scripts/prepare-release.sh 2.0.0` makes the changes a release of version 2.0.0 would make to `codemeta.json`, `CITATION.cff`, and `CHANGELOG.md`. Use `git diff` to see them, and `git checkout -- codemeta.json CITATION.cff CHANGELOG.md` to undo them.
-- `.github/scripts/update-doi.sh` sets the DOI in `CITATION.cff` and `relatedLink` in `codemeta.json` to the latest archived release in CaltechDATA.
+- `.github/scripts/prepare-release.sh 2.0.0` makes the changes a release of version 2.0.0 would make to `codemeta.json`, `CITATION.cff`, and `CHANGELOG.md`. The _Release_ workflow runs it. Use `git diff` to see the changes, and `git checkout -- codemeta.json CITATION.cff CHANGELOG.md` to undo them.
+- `.github/scripts/update-doi.sh` sets the DOI in `CITATION.cff` and `relatedLink` in `codemeta.json` to the latest archived release in CaltechDATA. Run it after archiving a release.
 
 Both take `--help`.
