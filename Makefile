@@ -29,7 +29,7 @@ endif
 # The following is based on the approach posted by Jonathan Ben-Avraham to
 # Stack Overflow in 2014 at https://stackoverflow.com/a/25668869
 
-programs_needed = curl git jq clasp jshint htmlhint jsonlint yamllint markdownlint
+programs_needed = curl git jq clasp npx
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
 
@@ -114,13 +114,19 @@ watch:
 
 # make lint & make test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#: Run code and other files through the linters that lint.yml runs.
+# jshint and markdownlint-cli2 run through npx at pinned versions, so they
+# need only Node.js, which clasp needs too. actionlint checks the GitHub
+# Actions workflows; it is a separate program, so it runs only if installed.
+
+#: Check Code.js, the Markdown files, and (if installed) the workflows.
 lint:
-	jshint Code.js
-	htmlhint '*.html'
-	markdownlint $(shell git ls-files '*.md')
-	yamllint --strict CITATION.cff $(shell git ls-files '*.yml' '*.yaml')
-	jsonlint -q codemeta.json
+	@npx --yes jshint@2.13.6 Code.js
+	npx --yes markdownlint-cli2@0.24.0 $(shell git ls-files '*.md')
+	if command -v actionlint > /dev/null; then
+	  actionlint
+	else
+	  echo "actionlint isn't installed, so the workflows weren't checked."
+	fi
 
 
 # Cleanup and miscellaneous directives ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
