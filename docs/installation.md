@@ -75,7 +75,7 @@ When that dialog goes away, close the Google Workspace Marketplace dialog, and n
 
 ## Directly from source
 
-If you are not at Caltech, you will not be able to find Boffo in the Google Marketplace for add-ons. Instead, you can push Boffo’s source files from the [GitHub repository](https://github.com/caltechlibrary/boffo) to an Apps Script project of your own with [`clasp`](https://github.com/google/clasp), Google’s command-line tool for Apps Script, and then run it in a spreadsheet as a test deployment. You will need [git](https://git-scm.com) and [Node.js](https://nodejs.org) version 20 or later.
+If you are not on the Caltech Library staff, you will not be able to find Boffo in the Google Marketplace for add-ons. Instead, you can push Boffo’s source files from the [GitHub repository](https://github.com/caltechlibrary/boffo) to an Apps Script project of your own with [`clasp`](https://github.com/google/clasp), Google’s command-line tool for Apps Script, and then run it in a spreadsheet as a test deployment. You will need [git](https://git-scm.com) and [Node.js](https://nodejs.org) version 20 or later.
 
 
 ### Pushing the source files with `clasp`
