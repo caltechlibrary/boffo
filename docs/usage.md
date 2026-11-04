@@ -29,7 +29,7 @@ Boffo will create a new sheet titled "Item Data" in the spreadsheet where you ra
 <figcaption>Boffo creates a new sheet in the same spreadsheet with the results of the lookup.</figcaption>
 </figure>
 
-If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to ask FOLIO for a token to use the network services. Boffo will store that token (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless something happens to make the token invalid (in which case, Boffo will ask you for the credentials again and generate a new token).
+If this is the first time you've used Boffo, it will first request your FOLIO account login and password in order to log in to FOLIO. Boffo will store the tokens that FOLIO returns (and _not_ your login or password), then proceed to look up the items whose barcodes are highlighted in the sheet. FOLIO access tokens last only a few minutes, so Boffo uses a longer-lived refresh token to get new ones as needed, including in the middle of a long search. On subsequent invocations, Boffo will not ask you for FOLIO credentials unless the refresh token expires or FOLIO stops accepting it (in which case, Boffo will ask you for the credentials again).
 
 
 ## Search by call numbers
@@ -86,22 +86,22 @@ This will make Boffo bring up the same FOLIO information and account details for
 
 <figure>
 <img width="95%" alt="The dialog for entering FOLIO user credentials" src="_static/media/folio-credentials-form.png">
-<figcaption>The form to reset your FOLIO credentials. (Note: this screenshot shows blank values for all the fields, but for Caltech Library staff who install Boffo as an internal add-on from the Google Marketplace, the values of the FOLIO URL and tenant id will be prefilled with the correct values and you will only need to enter the user name and password.)
+<figcaption>The form to reset your FOLIO credentials. (Note: this screenshot shows blank values for all the fields, but for Caltech Library staff who install Boffo as an internal add-on from the Google Marketplace, the values of the FOLIO URL and tenant id will be prefilled with the correct values and you will only need to enter the user name and password. Whenever Boffo has no stored FOLIO login session, such as after you use _Clear FOLIO token_, the form shows your organization’s default URL and tenant id, even if you previously typed different ones.)
 </figcaption>
 </figure>
 
 
 ## Clear FOLIO token
 
-If you'd like to reset your FOLIO API token deliberately, you can do so by selecting the menu item _Clear FOLIO token_:
+If you'd like to end your FOLIO login session deliberately, you can do so by selecting the menu item _Clear FOLIO token_:
 
 <figure>
 <img class="shadow border" width="550px" alt="The menu item to clear the saved FOLIO user credentials" src="_static/media/menu-item-clear-token.png">
-<figcaption>The menu item to unset/clear your current FOLIO token.
+<figcaption>The menu item to unset/clear your current FOLIO tokens.
 </figcaption>
 </figure>
 
-This Will remove the stored token, and the next time you use the _Look up barcodes in FOLIO_ menu item (or you use the _Set FOLIO credentials_ menu item), Boffo will ask you for your credentials again and then regenerate a new token.
+This will remove the stored access and refresh tokens, and the next time you use the _Look up barcodes in FOLIO_ menu item (or you use the _Set FOLIO credentials_ menu item), Boffo will ask you for your credentials again and log in to FOLIO again.
 
 
 ## Get info about Boffo
