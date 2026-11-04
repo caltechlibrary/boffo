@@ -2,6 +2,11 @@
 # GitHub Actions workflow for InvenioRDM GitHub Archiver version 1.0.3
 # This is available as the file "sample-workflow.yml" from the open-
 # source repository for IGA at https://github.com/caltechlibrary/iga/.
+#
+# Boffo's copy differs from the sample in one way: it runs only when
+# started by hand, not when a release is published, so archiving a
+# release in CaltechDATA is a separate, optional step. See "Archiving a
+# release" in docs/releasing.md.
 # ====================================================================
 
 name: InvenioRDM GitHub Archiver
@@ -21,8 +26,6 @@ env:
 # ~~~~~~~~~~~~ The rest of this file should be left as-is ~~~~~~~~~~~~
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       release_tag:
