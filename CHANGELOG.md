@@ -20,10 +20,13 @@ This version updates how Boffo logs in to FOLIO, for FOLIO servers that accept o
 * The _Clear FOLIO token_ menu item deletes all of the stored token data.
 * The privacy policy describes the tokens Boffo stores.
 * The change log is now named `CHANGELOG.md` and follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+* Releases are made with GitHub Actions workflows instead of `make` targets. They update the version metadata and the change log, open a draft GitHub release, record the DOI after CaltechDATA archives the release, and push the release to Apps Script. The new _Releasing Boffo_ page in the documentation describes them.
+* A single _Lint_ workflow runs all the linters on pull requests and on `main`.
 
 ### Fixed
 
 * FOLIO lookups failed on servers that accept only short-lived access tokens, because Boffo kept using one long-lived token from `/authn/login`.
+* The documentation site wasn’t being updated, because its workflow asked for a GitHub runner that no longer exists.
 
 
 ## [1.9.1] - 2024-03-12
