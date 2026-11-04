@@ -30,5 +30,6 @@ installation.md
 usage.md
 known-issues.md
 glossary.md
+releasing.md
 colophon.md
 ```
