@@ -7,9 +7,12 @@
 //
 // Example configuration options can be found in the "examples" directory at
 // https://github.com/jshint/jshint/tree/main/examples
+//
+// Apps Script's V8 runtime accepts newer syntax than ES2020, but jshint
+// can't parse it at any esversion, so 11 (ES2020) is as high as this goes.
 
 {
-      "esversion": 6,
+      "esversion": 11,
       "loopfunc": true,
       "evil": true
 }
