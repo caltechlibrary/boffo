@@ -12,7 +12,6 @@
 # Website: https://github.com/caltechlibrary/boffo
 
 name: Docs
-run-name: Build docs after ${{github.event_name}} by ${{github.actor}}
 
 on:
   push:
