@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.10.0] - 2026-11-04
+
 This version updates how Boffo logs in to FOLIO, for FOLIO servers that accept only short-lived access tokens and for institutions that use a member tenant in a FOLIO consortium.
 
 ### Added
@@ -139,7 +142,8 @@ Other changes in this version:
 First complete version and first release in Google Marketplace.
 
 
-[Unreleased]: https://github.com/caltechlibrary/boffo/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/caltechlibrary/boffo/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/caltechlibrary/boffo/compare/v1.9.1...v1.10.0
 [1.9.1]: https://github.com/caltechlibrary/boffo/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/caltechlibrary/boffo/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/caltechlibrary/boffo/compare/v1.7.1...v1.8.0
