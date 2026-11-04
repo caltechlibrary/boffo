@@ -1,4 +1,4 @@
-# Summary: configuration file for .github/workflows/yaml-linter.yml.
+# Summary: configuration file for yamllint, used by .github/workflows/lint.yml.
 #
 # Copyright 2024 California Institute of Technology.
 # License: Modified BSD 3-clause – see file "LICENSE" in the project website.
