@@ -16,7 +16,7 @@ This version updates how Boffo logs in to FOLIO, for FOLIO servers that accept o
 ### Changed
 
 * Boffo logs in with FOLIO’s `/authn/login-with-expiry` API. It stores the short-lived access token, the refresh token, and their expiration times in the user’s properties, and never stores the user’s FOLIO password.
-* When a user has no stored FOLIO login session, Boffo fills in the credentials form with the FOLIO URL and tenant id from the add-on’s script properties, replacing any older values stored for that user. This gives existing users the new tenant id the first time they log in with this version.
+* When a user has no stored FOLIO login session, Boffo fills in the credentials form with the FOLIO URL and tenant id from the add-on’s script properties, replacing any older values stored for that user. Changing those script properties gives such users new values without a new release.
 * The _Clear FOLIO token_ menu item deletes all of the stored token data.
 * The privacy policy describes the tokens Boffo stores.
 * The change log is now named `CHANGELOG.md` and follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
