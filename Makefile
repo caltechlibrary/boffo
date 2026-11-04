@@ -85,12 +85,12 @@ define instructions_text =
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
  1. Run $(color)make lint$(reset), fix any problems, and commit any changes.
  2. Update the version number in the file codemeta.json.
- 3. Update CHANGES.md if needed & commit changes.
+ 3. Update CHANGELOG.md if needed & commit changes.
  4. Check the output of $(color)make report$(reset) (ignoring current id & DOI).
  5. Run $(color)make clean$(reset).
  6. Run $(color)make release$(reset); after some steps, it will open a file
     in your editor to write GitHub release notes. Copy the notes
-    from CHANGES.md. Save the opened file to finish the process.
+    from CHANGELOG.md. Save the opened file to finish the process.
  7. Wait for the IGA GitHub Action to finish uploading to InvenioRDM
  8. Run $(color)make post-release$(reset) and check the results.
  9. Run $(color)make deploy$(reset) and check the results.

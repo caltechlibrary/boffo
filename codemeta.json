@@ -51,7 +51,7 @@
   "url": "https://caltechlibrary.github.io/boffo",
   "codeRepository": "https://github.com/caltechlibrary/boffo",
   "readme": "https://github.com/caltechlibrary/boffo/blob/main/README.md",
-  "releaseNotes": "https://github.com/caltechlibrary/boffo/blob/main/CHANGES.md",
+  "releaseNotes": "https://github.com/caltechlibrary/boffo/blob/main/CHANGELOG.md",
   "issueTracker": "https://github.com/caltechlibrary/boffo/issues",
   "downloadUrl": "https://github.com/caltechlibrary/boffo/releases",
   "softwareHelp": "http://caltechlibrary.github.io/boffo",
