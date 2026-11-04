@@ -1,24 +1,11 @@
-# Makefile for developing and releasing Boffo.
+# Makefile for developing Boffo.
 # Run "make" or "make help" to get a list of commands in this makefile.
 #
-# ╭───────────────────────────── Important notes ─────────────────────────────╮
-# │ Run "make" or "make help" to get a list of commands in this makefile.     │
-# │                                                                           │
-# │ The codemeta.json file is considered the master source for version and    │
-# │ other info. Information is pulled out of codemeta.json to update other    │
-# │ files like CITATION.cff and the README. Maintainers should update         │
-# │ codemeta.json and not edit other files to update version numbers & URLs.  │
-# │                                                                           │
-# │ The parts involving the DOI in this makefile make 3 assumptions:          │
-# │  * The DOI identifies the released version of this software by            │
-# │    referencing a copy in a research data repository (RDM) system          │
-# │  * The RDM server used is based on InvenioRDM (roughly same as Zenodo)    │
-# │  * The codemeta.json file contains a "relatedLink" field whose value      │
-# │    contains the URL of a copy of this software stored in the RDM server.  │
-# │ With these assumptions, we can automatically get the latest DOI for a     │
-# │ release in RDM (because given any release, RDM can be queried for the     │
-# │ latest one) and we don't have to hardwire URLs or id's in this makefile.  │
-# ╰───────────────────────────────────────────────────────────────────────────╯
+# Releases are made with GitHub Actions, not with this makefile. See the
+# "Releasing Boffo" page in docs/ (docs/releasing.md).
+#
+# The codemeta.json file is the master source for the version number and
+# other metadata. The release workflow copies them into CITATION.cff.
 #
 # Copyright 2024 California Institute of Technology.
 # License: Modified BSD 3-clause – see file "LICENSE" in the project website.
@@ -42,7 +29,7 @@ endif
 # The following is based on the approach posted by Jonathan Ben-Avraham to
 # Stack Overflow in 2014 at https://stackoverflow.com/a/25668869
 
-programs_needed = curl git gh jq clasp jshint htmlhint jsonlint yamllint markdownlint
+programs_needed = curl git jq clasp jshint htmlhint jsonlint yamllint markdownlint
 TEST := $(foreach p,$(programs_needed),\
 	  $(if $(shell which $(p)),_,$(error Cannot find program "$(p)")))
 
@@ -55,7 +42,6 @@ version	 := $(strip $(shell jq -r .version codemeta.json))
 repo	 := $(shell git ls-remote --get-url | sed -e 's/.*:\(.*\).git/\1/')
 repo_url := https://github.com/$(repo)
 branch	 := $(shell git rev-parse --abbrev-ref HEAD)
-today	 := $(shell date "+%F")
 
 
 # Print help if no command is given ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,29 +60,6 @@ help:
 	| sed 'N;s/\n/###/' \
 	| sed -n 's/^#: \(.*\)###\(.*\):.*/$(color)\2$(reset):###\1/p' \
 	| column -t -s '###'
-
-#: Summarize how to do a release using this makefile.
-instructions:;
-	$(info $(instructions_text))
-
-define instructions_text =
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Steps for doing a release                                          ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
- 1. Run $(color)make lint$(reset), fix any problems, and commit any changes.
- 2. Update the version number in the file codemeta.json.
- 3. Update CHANGELOG.md if needed & commit changes.
- 4. Check the output of $(color)make report$(reset) (ignoring current id & DOI).
- 5. Run $(color)make clean$(reset).
- 6. Run $(color)make release$(reset); after some steps, it will open a file
-    in your editor to write GitHub release notes. Copy the notes
-    from CHANGELOG.md. Save the opened file to finish the process.
- 7. Wait for the IGA GitHub Action to finish uploading to InvenioRDM
- 8. Run $(color)make post-release$(reset) and check the results.
- 9. Run $(color)make deploy$(reset) and check the results.
-10. Update the Google Marketplace version.
-endef
-
 
 # Gather additional values we sometimes need ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -146,146 +109,25 @@ report: vars
 
 #: Continually watch files & upload changes to Google GAS project.
 watch:
-	clasp -P .clasp.json.caltech  push --watch
+	clasp -P $(CURDIR)/.clasp.json.caltech push --watch
 
 
 # make lint & make test ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#: Run code and other files through linters.
+#: Run code and other files through the linters that lint.yml runs.
 lint:
 	jshint Code.js
-	htmlhint about.html credentials-form.html stylesheet.css.html
-	markdownlint $(shell find . -name '*.md')
-	yamllint CITATION.cff $(shell find . -name '*.yml')
+	htmlhint '*.html'
+	markdownlint $(shell git ls-files '*.md')
+	yamllint --strict CITATION.cff $(shell git ls-files '*.yml' '*.yaml')
 	jsonlint -q codemeta.json
-
-
-# make release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#: Make a release on GitHub & update copies in Google GAS projects.
-release: | test-branch confirm-release release-on-github wait-on-iga print-next-steps
-
-test-branch:
-ifneq ($(branch),main)
-	$(error Current git branch != main. Merge changes into main first!)
-endif
-
-confirm-release:
-	@read -p "Have you updated the version number? [y/N] " ans && : $${ans:=N} ;\
-	if [ $${ans::1} != y ]; then \
-	  echo ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-	  echo ┃ Update the version number in codemeta.json first. ┃
-	  echo ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-	  exit 1
-	fi
-
-update-all: update-meta update-citation
-
-# Note that this doesn't replace "version" in codemeta.json, because that's the
-# variable from which this makefile gets its version number in the first place.
-update-meta:
-	@sed -i .bak -e '/"datePublished"/ s|: ".*"|: "$(today)"|' codemeta.json
-	@echo codemeta.json updated ✨
-
-update-citation: vars
-	@sed -i .bak -e '/^url:/ s|:.*|: $(url)|' CITATION.cff
-	@sed -i .bak -e '/^title:/ s|:.*|: $(name)|' CITATION.cff
-	@sed -i .bak -e '/^version:/ s|:.*|: $(version)|' CITATION.cff
-	@sed -i .bak -e '/^abstract:/ s|:.*|: $(desc)|' CITATION.cff
-	@sed -i .bak -e '/^license-url:/ s|:.*|: $(license)|' CITATION.cff
-	@sed -i .bak -e '/^date-released:/ s|:.*|: $(today)|' CITATION.cff
-	@sed -i .bak -e '/^repository-code:/ s|:.*|: $(repo_url)|' CITATION.cff
-	@echo CITATION.cff updated ✨
-
-edited := codemeta.json CITATION.cff README.md
-
-commit-updates:
-	git add $(edited)
-	git diff-index --quiet HEAD $(edited) || \
-	    git commit -m'docs: update version, date, & related info' $(edited)
-
-release-on-github: | update-all commit-updates
-	$(eval tmp_file := $(shell mktemp /tmp/release-notes-$(progname).XXXX))
-	$(eval tag := "v$(shell tr -d '()' <<< "$(version)" | tr ' ' '-')")
-	git push -v --all
-	git push -v --tags
-	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
-	@$(info ┃ Write release notes in the file that gets opened in your  ┃)
-	@$(info ┃ editor. Close the editor to complete the release process. ┃)
-	@$(info ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛)
-	sleep 2
-	$(EDITOR) $(tmp_file)
-	gh release create $(tag) -t "Release $(version)" -F $(tmp_file)
-	gh release edit $(tag) --latest
-
-wait-on-iga:
-	@$(info ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓)
-	@$(info ┃ Wait for the archiving workflow to finish on GitHub ┃)
-	@$(info ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛)
-	sleep 2
-	$(eval pid := $(shell gh run list --workflow=iga.yml --limit 1 | tail -1 | awk -F $$'\t' '{print $$7}'))
-	gh run watch $(pid)
-
-print-next-steps: vars
-	@$(info ┏━━━━━━━━━━━━┓)
-	@$(info ┃ Next steps ┃)
-	@$(info ┗━━━━━━━━━━━━┛)
-	@$(info  1. Check $(repo_url)/releases )
-	@$(info  2. Run $(color)make post-release$(reset) and check the results.)
-	@$(info  3. Run $(color)make deploy$(reset) and check the results.)
-	@$(info  4. Update the Google Marketplace version.)
-
-
-#: Update values in CITATION.cff, codemeta.json, and README.md.
-post-release: update-citation-doi update-codemeta-link push-updates sync-projects
-
-# The DOI badge in README.md uses a URL that gets redirected automatically by
-# InvenioRDM to the latest release. However, the DOI in CITATION.cff and the
-# field relatedLink in codemeta.json need to point to the release we just made.
-
-update-citation-doi: vars
-	@if [ -n "$(latest_doi)" ]; then
-	  sed -i .bak -e '/doi:/ s|doi: .*|doi: $(latest_doi)|' CITATION.cff
-	  git add CITATION.cff
-	  git diff-index --quiet HEAD CITATION.cff || \
-	    git commit -m"chore: update DOI in CITATION.cff" CITATION.cff
-	fi
-
-update-codemeta-link: vars
-	@if [ -n "$(latest_doi)" ]; then
-	  $(eval new_id   := $(shell cut -f'2' -d'/' <<< $(latest_doi)))
-	  $(eval new_link := $(rdm_url)/records/$(new_id))
-	  @sed -i .bak -e '/"relatedLink"/ s|: ".*"|: "$(new_link)"|' codemeta.json
-	  git add codemeta.json
-	  git diff-index --quiet HEAD codemeta.json || \
-	    git commit -m"chore: update relatedLink in codemeta.json" codemeta.json
-	fi
-
-push-updates:
-ifdef latest_doi
-	git push -v --all
-endif
-
-# The reason for two separate project profiles is that we have to keep two
-# separate Apps Script projects on Google. The Caltech one is the real
-# development copy, but it's private (because it's inside the Library's
-# G-Suite/Google Workspace), so I keep a second copy in my own (mhucka)
-# Google account so that I can point people to it.
-sync-projects:
-	clasp -P .clasp.json.caltech  push || exit 1
-	clasp -P .clasp.json.public  push || exit 1
-
-#: Make a new deployment of the Google Apps Script project.
-deploy:
-	clasp deploy -P .clasp.json.caltech --description "Version $(version)"
 
 
 # Cleanup and miscellaneous directives ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #: Clean this directory of temporary and backup files.
-clean: clean-release clean-other
+clean:
 	rm -f *.bak
-	rm -f tests/*.log
 	@echo ✨ Cleaned! ✨
 
 #: Print a random joke from https://icanhazdadjoke.com/.
@@ -299,11 +141,6 @@ dim    := $(shell tput setaf 66)
 link   := $(shell tput setaf 111)
 reset  := $(shell tput sgr0)
 
-.PHONY: help instructions vars report release test-branch tests update-all \
-	update-init update-meta update-citation update-example commit-updates \
-	update-citation-doi print-next-steps clean really-clean completely-clean \
-	clean-dist really-clean-dist clean-build really-clean-build \
-	clean-release clean-other joke
+.PHONY: help vars doi-vars report watch lint clean joke
 
-.SILENT: clean clean-dist clean-build clean-release clean-other really-clean \
-	really-clean-dist really-clean-build completely-clean instructions vars
+.SILENT: clean vars
