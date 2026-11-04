@@ -54,7 +54,7 @@ Be aware of what this secret is:
 4. Run **Release** again with **Dry run** unchecked. It commits `chore: release X.Y.Z` to `main` and opens a draft release for tag `vX.Y.Z`. The run summary links to the draft.
 5. Open the draft, edit the notes if needed, and click **Publish release**. Publishing creates the tag.
 6. On the **Actions** tab, select **Apps Script**, then **Run workflow**. Leave the tag empty to use the latest release. Approve the run when GitHub asks for a review of the `apps-script` deployment. The run summary gives the new Apps Script version number.
-7. Open the [App Configuration page](https://console.cloud.google.com/apis/api/appsmarketplace.googleapis.com/googleapps_sdk?project=boffo-add-on) of the Google Workspace Marketplace SDK in the `boffo-add-on` Cloud project. Under the Sheets add-on, set the script version to the number from step 6, and click **Save**. Users get the new version the next time Google updates their add-ons, which can take a while.
+7. Open the [App Configuration page](https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=boffo-add-on) of the Google Workspace Marketplace SDK in the `boffo-add-on` Cloud project. Under the Sheets add-on, set the script version to the number from step 6, and click **Save**. Users get the new version the next time Google updates their add-ons, which can take a while.
 
 The _Release_ workflow refuses to run if the version isn’t greater than the one in `codemeta.json`, if tag `vX.Y.Z` already exists, or if the `[Unreleased]` section of `CHANGELOG.md` is empty.
 
