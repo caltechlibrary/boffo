@@ -115,7 +115,7 @@ jobs:
           **$number** from it.
 
           To release it to users, open the
-          [App Configuration page](https://console.cloud.google.com/apis/api/appsmarketplace.googleapis.com/googleapps_sdk?project=$project)
+          [App Configuration page](https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=$project)
           of the Google Workspace Marketplace SDK, set the Sheets add-on
           script version to **$number**, and save.
           EOF
